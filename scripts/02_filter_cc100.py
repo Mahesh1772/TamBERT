@@ -57,16 +57,17 @@ def parse_tamil_cc100(xz_path, out_path):
     
     with lzma.open(xz_path) as lzma_file:
         with open(out_path, 'w', encoding='utf-8', buffering=1024*1024) as out_file:
-            for line_num, line in tqdm(enumerate(lzma_file), desc='Processing lines'):
-                line = line.decode('utf-8').strip()
-                cleaned_line = clean_cc100_text(line)
-                if cleaned_line:
-                    out_file.write(cleaned_line + '\n')
-                    num_pages += 1
-                    
-                if (line_num + 1) % 100000 == 0:
-                    print(f"Processed {line_num + 1} lines, kept {num_pages} lines with Tamil text.")
-    
+            with tqdm(total=68_237_343, unit='lines', unit_scale=True, desc='Processing CC-100') as pbar: # Size ws observed from trial runs, adjust if needed
+                for line_num, line in tqdm(enumerate(lzma_file), desc='Processing lines'):
+                    pbar.update(1)
+                    line = line.decode('utf-8').strip()
+                    cleaned_line = clean_cc100_text(line)
+                    if cleaned_line:
+                        out_file.write(cleaned_line + '\n')
+                        num_pages += 1
+                        
+                    if (line_num + 1) % 1000000 == 0:
+                        print(f"Processed {line_num + 1} lines, kept {num_pages} lines with Tamil text.")
 
     print()
     print(f"Finished processing. Total pages: {num_pages}. Output saved to {out_path}\n")
