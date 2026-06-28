@@ -119,27 +119,6 @@ def parse_tamil_wiki_dump(bz2_path, out_path, keep_ns=('0',)):
         del ctx  # free memory
     print()
     print(f"Finished processing. Total pages: {n_pages}, kept pages with Tamil text: {n_kept}. Output saved to {out_path}\n")
-    
-
-def reservoir_sample(input_file, k=5, encoding='utf-8'):
-    """
-    Performs reservoir sampling to randomly select k lines from the input file.
-    
-    Args:
-        input_file (str): Path to the input text file.
-        k (int): Number of lines to sample (default is 5).
-        encoding (str): Encoding of the input file (default is 'utf-8').
-    """
-    reservoir = []
-    with open(input_file, 'r', encoding=encoding) as f:
-        for n, line in enumerate(f):
-            if n < k:
-                reservoir.append(line.strip())
-            else:
-                j = random.randint(0, n)
-                if j < k:
-                    reservoir[j] = line.strip()
-    return reservoir
 
 def main():
     # Setup the environment and download the Tamil Wikipedia dump
