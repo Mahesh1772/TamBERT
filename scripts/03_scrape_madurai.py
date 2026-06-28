@@ -57,7 +57,7 @@ def clean_project_madurai_text(text:str) -> str:
     text = re.sub(r'&(?:[a-zA-Z]+|#[0-9]+|#x[0-9a-fA-F]+);', '', text)
     # 4. Remove English words and retain only Tamil words
     tamil_words = extract_tamil_words(text)
-    return ' '.join(tamil_words)
+    return tamil_words
 
 def fetch_and_clean_page(item):
     """
