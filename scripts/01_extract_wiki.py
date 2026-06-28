@@ -117,7 +117,8 @@ def parse_tamil_wiki_dump(bz2_path, out_path, keep_ns=('0',)):
                 if n_pages % 5000 == 0:
                     print(f"Processed {n_pages} pages, kept {n_kept} pages with Tamil text.")
         del ctx  # free memory
-    print(f"Finished processing. Total pages: {n_pages}, kept pages with Tamil text: {n_kept}. Output saved to {out_path}")
+    print()
+    print(f"Finished processing. Total pages: {n_pages}, kept pages with Tamil text: {n_kept}. Output saved to {out_path}\n")
     
 
 def reservoir_sample(input_file, k=5, encoding='utf-8'):
@@ -150,6 +151,6 @@ def main():
     # Perform reservoir sampling to get a few random lines from the extracted text
     sampled_lines = reservoir_sample(extracted_text_file, k=5)
     
-    print("Sampled lines from the extracted Tamil text:")
+    print("Sampled lines from the extracted Tamil text:\n")
     for line in sampled_lines:
         print(line)
