@@ -50,7 +50,7 @@ def clean_project_madurai_text(text:str) -> str:
         return ''
 
     # 1. Remove URLs
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'https?://\S+', '', text)
     # 2. Strip emails
     text = re.sub(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', '', text)
     # 3. Strip HTML entities (&oldid=, &amp, etc)
@@ -75,7 +75,7 @@ def fetch_and_clean_page(item):
         response.encoding = 'utf-8'
         soup = BeautifulSoup(response.text, 'html.parser')
     
-        if not soup:
+        if not soup.body:
             return []
 
         lines = soup.body.get_text(separator='\n').splitlines()
@@ -87,7 +87,7 @@ def fetch_and_clean_page(item):
 
 def parse_project_madurai(html_links, out_path):
     """
-    Parses the Tamil CC-100 file, extracts Tamil text, and saves it to an output file.
+    Parses the Project Madurai HTML links, extracts Tamil text, and saves it to an output file.
     
     Args:
         html_links (dict): A dictionary mapping filenames to URLs of HTML pages.
@@ -111,7 +111,7 @@ def main():
     # Setup the environment and download the Tamil Wikipedia dump
     html_links, extracted_text_file = setup_environment()
     
-    # Parse the Tamil CC-100 file and extract Tamil text
+    # Parse the Project Madurai HTML links and extract Tamil text
     parse_project_madurai(html_links, extracted_text_file)
     
     # Perform reservoir sampling to get a few random lines from the extracted text

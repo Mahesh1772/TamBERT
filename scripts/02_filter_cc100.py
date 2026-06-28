@@ -37,7 +37,7 @@ def clean_cc100_text(text:str) -> str:
         return ''
 
     # 1. Remove URLs
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'https?://\S+', '', text)
     # 2. Strip HTML entities and tags
     text = re.sub(r'&(?:[a-zA-Z]+|#[0-9]+|#x[0-9a-fA-F]+);', '', text)
     # 3. Remove English words and retain only Tamil words
