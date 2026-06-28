@@ -1,0 +1,33 @@
+tambert/
+├── data/
+│   ├── raw/
+│   │   ├── tamil_wiki/
+│   │   ├── cc100/
+│   │   └── project_madurai/
+│   ├── cleaned/
+│   │   ├── tamil_wiki.csv
+│   │   ├── cc100.csv
+│   │   └── project_madurai.csv
+│   └── corpus/
+│       ├── corpus_90pct.txt
+│       └── corpus_10pct.txt
+│
+├── notebooks/
+│   ├── 01_fetch_and_clean.ipynb       ← experimental, messy, exploratory
+│   ├── 02_train_tokenizer.ipynb
+│   ├── 03_mlm_pretrain.ipynb
+│   ├── 04_nli_finetune.ipynb
+│   └── 05_sts_finetune_and_eval.ipynb
+│
+├── scripts/
+│   └── data_pipeline/                 ← not preprocess, see note below
+│       ├── 01_extract_wiki.py
+│       ├── 02_scrape_madurai.py
+│       ├── 03_filter_cc100.py
+│       ├── 04_merge_corpus.py
+│       └── config.yaml
+│
+├── tokenizer/                         ← saved tokenizer artifacts go here
+├── checkpoints/                       ← model checkpoints
+├── results/                           ← eval outputs, MTEB results
+└── README.md

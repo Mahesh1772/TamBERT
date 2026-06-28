@@ -1,4 +1,4 @@
 *.xz
 *.bz2
-*.txt
 *.xml
+/data
