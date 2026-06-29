@@ -1,4 +1,4 @@
-import os, random, fileinput
+import shutil, bz2, os, random, fileinput
 from pathlib import Path
 from tqdm import tqdm
 from utils import create_directories, reservoir_sample, TAMIL_CHARACTERS
@@ -82,7 +82,7 @@ def create_file_assignment_list(input_file:Path, test_split=0.1):
     
     # Shuffle the assignments to randomize train/test distribution
     random.seed(42)  # For reproducibility
-    random.shuffle(line_assignments, seeding=42)  # Shuffle with a fixed seed for reproducibility
+    random.shuffle(line_assignments)  # Shuffle with a fixed seed for reproducibility
     
     return line_assignments, total_lines, train_size, test_size
 
@@ -98,9 +98,11 @@ def create_train_test_files(merged_file:Path, train_file:Path, test_file:Path, t
         test_split (float): The fraction of lines to sample for the test file (default is 0.1).
     """
     
+    print(f"Creating train and test files from {merged_file} with a test split of {test_split*100:.1f}%...")
     # Obtain the total number of lines in the merged file
     line_indices, total_lines, train_size, test_size = create_file_assignment_list(merged_file, test_split=test_split)
     
+    print(f"Total lines in merged file: {total_lines}, Train size: {train_size}, Test size: {test_size}")
     # Read form the merged file and write to train and test files based on the shuffled indices
     with(
         open(merged_file, 'r', encoding='utf-8') as infile,
