@@ -13,6 +13,10 @@ def setup_environment():
     # Setup paths for Merged text file and the train/test files
     merged_text_file = cleaned_data / 'merged.txt'
     
+    if merged_text_file.exists():
+        print(f"Merged text file already exists at {merged_text_file}. It will be overwritten.")
+        merged_text_file.unlink()  # Remove the existing file to avoid appending to it
+    
     # Setup Corpus directory for storing the train/test files
     corpus_dir = cleaned_data.parent / 'corpus'
     corpus_dir.mkdir(exist_ok=True, parents=True)
