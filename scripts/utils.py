@@ -9,6 +9,7 @@ TAMIL_VOCAB = re.compile(
     r'|[,!?"\-%\']'                           # prose punctuation — human-typed
     # = [ ] { } are intentionally excluded from training text, reserved using [unused] tokens
 )
+TAMIL_CHARACTERS = re.compile(r'[\u0B80-\u0BFF]')  # Tamil characters only
 
 # Helper function to extract Tamil text from the Wikipedia dump
 def extract_tamil_words(text:str) -> list[str]:
