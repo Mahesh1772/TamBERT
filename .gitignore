@@ -2,3 +2,5 @@
 *.bz2
 *.xml
 /data
+/scripts/__pycache__
+scripts/test.py

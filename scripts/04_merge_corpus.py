@@ -146,3 +146,5 @@ def main():
     print("\nSampled lines from the test file:\n")
     for line in sampled_test_lines:
         print(line)
+        
+main()

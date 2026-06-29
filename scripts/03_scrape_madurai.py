@@ -120,3 +120,5 @@ def main():
     print("Sampled lines from the extracted Tamil text:\n ")
     for line in sampled_lines:
         print(line)
+                
+main()
