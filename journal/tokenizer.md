@@ -68,6 +68,8 @@ Tokenizer behaviour when encoutering new chars not part of train set:
 - What is the real root of suffering? **Tokenization**.
 
 
+## Workflow for Tokenizer Notebook
+
 | Test | Goal                | Fixed                                                        | Varied              | Options tested                                                                                 | # Runs | Metric                                                 | Depends on              |
 | ---- | ------------------- | ------------------------------------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------ | ----------------------- |
 | 1    | Best normalization  | Pre-tokenizer = Whitespace; Algo = BPE; merge count          | Normalization       | NFC vs. None                                                                                   | 2      | OOV, Fertility                                         | —                       |
