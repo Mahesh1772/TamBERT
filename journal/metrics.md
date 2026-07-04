@@ -1,7 +1,5 @@
 ## When Each Check Runs
 
-No — most of these checks should be run **before** the tokenizer is trained. The point is to audit your raw text corpus *first*, so you catch imbalance, redundancy, or noise before it bakes into your vocabulary. Only the perplexity and embedding clustering checks need a model.
-
 | Check | Needs tokenizer? | Needs LM/encoder? | Run when |
 |---|---|---|---|
 | Token/word count per source | ❌ | ❌ | Before everything |
@@ -15,7 +13,7 @@ No — most of these checks should be run **before** the tokenizer is trained. T
 
 ---
 
-## Full Collated Test Reference
+## Test Reference
 
 ### Corpus Statistics (Pre-tokenizer)
 
@@ -119,15 +117,24 @@ $$PPL = \exp\left(-\frac{1}{N} \sum_{i=1}^{N} \log P(w_i \mid \text{context})\ri
 - If sources cluster cleanly apart → good diversity; if all blend → you're adding the same domain.
 
 ---
+| Metric                              | Acceptable                                    | Investigate | Concerning          | How to tackle                                                                                                                                  | Notes                                                                                                                                                                                                                                                  |
+| ----------------------------------- | --------------------------------------------- | ----------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| H1. Non-Tamil contamination         | 0–3%                                          | 3–10%       | >10%                | Filter/flag lines by contamination % per source; strip stray Latin/symbols if isolated, or drop the whole source if systemic                   | Some contamination is legit (loanwords, numerals, code-mixing) — check which chars are flagging before deleting, don't blanket-strip                                                                                                                   |
+| H2. Encoding anomaly rate           | <1%                                           | 1–5%        | >5%                 | Re-decode with correct source encoding, run NFC normalization pass, drop lines with U+FFFD (unrecoverable)                                     | A high rate often means one source was scraped/decoded wrong — isolate by source before fixing globally, don't patch line-by-line                                                                                                                      |
+| H3. Exact duplicate ratio           | <5% aclanthology                              | 5–15%       | >15% youtubegopenai | Streaming hash-set dedup (blake2b/MD5), drop repeats, keep first occurrence                                                                    | Web-scrape corpora typically show 3–14% exact dup rate even in "clean" datasets like C4 aclanthology — some redundancy is normal, don't panic at low single digits                                                                                     |
+| H3b. Bloom filter estimate          | Same bands as above, but treat as directional | —           | —                   | If flagged rate is borderline, rerun with exact hash-set on a subsample to confirm                                                             | Bloom filter's error_rate only bounds false positives (reporting new lines as duplicate) — it will never under-report; error_rate=0.001 means ~0.1% of unique lines could be wrongly flagged as dupes, so your true rate is ≤ reported rate, not exact |
+| H4. Non-alphabetic density          | <10%                                          | 10–25%      | >25%                | Strip boilerplate/markup patterns (repeated symbols, ad text signatures), inspect high-density lines manually                                  | Punctuation-heavy poetry/scripture (Thirukkural-style) can look "concerning" here without being noise — check content, not just the number                                                                                                             |
+| H5. Empty/truncated/short-line rate | <2%                                           | 2–8%        | >8%                 | Drop empty/whitespace-only lines outright; for short lines, spot-check whether they're legit (proverbs) vs. scraping artifacts before dropping | Your corpus has legitimate short lines (Aathichudi) — don't set the word-count threshold too aggressively or you'll delete real content, not noise                                                                                                     |
 
-## Practical Order for Your Pipeline
+---
+## Practical Order
 
 **Before tokenizer**
 1. Word/sentence count per source
 2. Sentence length distribution
 3. Unigram entropy per source
 4. MTLD per source
-5. JS divergence: each new source vs. existing pool
+5. JS divergence: each new source vs. existing pool (for adding new source)
 6. Bigram Jaccard overlap
 
 **After tokenizer**
