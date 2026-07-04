@@ -1,4 +1,4 @@
-import random, re
+import random, re, regex
 from pathlib import Path
 
 # Define Vocabulary parameters
@@ -10,6 +10,10 @@ TAMIL_VOCAB = re.compile(
     # = [ ] { } are intentionally excluded from training text, reserved using [unused] tokens
 )
 TAMIL_CHARACTERS = re.compile(r'[\u0B80-\u0BFF]')  # Tamil characters only
+REPLACEMENT_CHAR = '\ufffd'
+DISALLOWED = re.compile(r'[^\u0B80-\u0BFF\s0-9,!?"\-%\'.]')
+NON_ALPHA = regex.compile(r'[\p{N}\p{P}\p{S}]')
+NEW_LINE = '\n'
 
 # Helper function to extract Tamil text from the Wikipedia dump
 def extract_tamil_words(text:str) -> list[str]:
