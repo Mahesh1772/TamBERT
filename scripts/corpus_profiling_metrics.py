@@ -3,7 +3,9 @@ import numpy as np
 from collections import defaultdict
 from array import array
 from scipy.stats import entropy as scipy_entropy
-from utils import create_directories, NON_ALPHA, REPLACEMENT_CHAR, DISALLOWED, NEW_LINE
+from utils import create_directories, NEW_LINE
+import pandas as pd
+import matplotlib.pyplot as plt
 
 def setup_environment():
     """
@@ -24,10 +26,8 @@ def setup_environment():
     tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted.txt')
     
     file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt]
-
-    hygiene_metrics = [ 'h1_contamination_', 'h2_encoding_anomaly_', 'h3_duplicate_ratio_', 'h5_invalid_lines_' ]
        
-    return metrics_data, file_paths, hygiene_metrics
+    return metrics_data, file_paths
 
 def mtld_pass(ids, threshold=0.72):
   factors = 0
@@ -94,3 +94,49 @@ def calculate_corpus_metrics(file_name):
           'TTR': ttr,
           'MTLD': mtld,
           'Unigram Entropy': unigram_entropy}
+
+def save_sentence_length_distribution(sent_len_dist, source_name, output_dir):
+    """Save sentence-length distribution as a log-scale bar chart PNG.
+
+    sent_len_dist: list of (length, count) tuples, e.g. sorted(sent_len.items())
+    source_name: used for both the plot title and the output filename
+    output_dir: Path to the metrics folder
+
+    Returns the Path the PNG was saved to.
+    """
+    lengths, counts = zip(*sent_len_dist)
+    plt.figure(figsize=(8, 4))
+    plt.bar(lengths, counts, width=0.9)
+    plt.yscale('log')
+    plt.xlabel('Sentence length (tokens)')
+    plt.ylabel('Count (log scale)')
+    plt.title(f'Sentence Length Distribution — {source_name}')
+    plt.tight_layout()
+    png_path = output_dir / f'sent_len_dist_{source_name}.png'
+    plt.savefig(png_path, dpi=120)
+    plt.close()
+    return png_path
+
+def main():
+    """
+    Main function to calculate corpus profiling metrics for the specified text files.
+    """
+    metrics_data, file_paths = setup_environment()
+    results = []
+
+    # Calculate corpus profiling metrics for individual files
+    for path in file_paths:
+        print(f"Calculating corpus metrics for {path.name}...")
+        metrics = calculate_corpus_metrics(path)
+        
+        sent_len_dist = metrics.pop('Sentence Length Distribution')
+        png_path = save_sentence_length_distribution(sent_len_dist, path.stem, metrics_data)
+        print(f"Saved sentence length distribution plot to {png_path}")
+        
+        metrics['source'] = path.name
+        results.append(metrics)
+        print(metrics)
+        print()
+    
+    summary_df = pd.DataFrame(results)
+    summary_df.to_csv(metrics_data / 'corpus_metrics_summary.csv', index=False)
