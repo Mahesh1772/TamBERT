@@ -1,28 +1,33 @@
 from pathlib import Path
-import re
 import unicodedata
 from pybloom_live import ScalableBloomFilter
-import regex
-from utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR, has_orphaned_combining_mark, is_anomalous_line
+from utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR, create_directories
 
 def setup_environment():
     """
     Sets up the environment by creating necessary directories for storing hygiene metrics.
     """
     # Setup the Paths for data storage
-    data = Path('data')
-    data.mkdir(exist_ok=True, parents=True)
-    print('Data folder created...')
+    
+    data, _, cleaned_data = create_directories()  # Ensure the data directories exist
     metrics_data = data / Path('metrics')
     metrics_data.mkdir(exist_ok=True, parents=True)
     print('Metrics folder created...')
     
-    return metrics_data
+    train_txt = data / Path('corpus/train.txt')
+    test_txt = data / Path('corpus/test.txt')
+    
+    project_madurai_txt = cleaned_data / Path('project_madurai_extracted.txt')
+    tamil_wiki_txt = cleaned_data / Path('tamil_wiki_extracted.txt')
+    tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted.txt')
+    
+    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt]
+
+    hygiene_metrics = [ 'h1_contamination_', 'h2_encoding_anomaly_', 'h3_duplicate_ratio_', 'h5_invalid_lines_' ]
+       
+    return metrics_data, file_paths, hygiene_metrics
 # error storage files
-contamination_txt = 'h1_contamination'
-encoding_anomaly_txt = 'h2_encoding_anomaly'
-duplicate_ratio_txt = 'h3_duplicate_ratio'
-invalid_lines_txt = 'h5_invalid_lines'
+
 
 def is_combining_mark(ch: str) -> bool:
     return unicodedata.category(ch) in ('Mn', 'Mc', 'Me')
@@ -54,7 +59,7 @@ def is_anomalous_line(line: str):
         return True, 'orphaned mark'
     return False, None
 
-def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, initial_capacity=1000, metrics_data=None):
+def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, initial_capacity=1000, metrics_data=None, hygiene_metrics=None):
 
   sbf = ScalableBloomFilter(initial_capacity=initial_capacity, error_rate=error_rate)
 
@@ -66,12 +71,14 @@ def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, 
   duplicates = 0
   anomalous_lines = 0
 
+  print(f'{metrics_data / hygiene_metrics[0]}{file_path.name}')
+
   with(
       open(file_path, 'r', encoding='utf-8') as f,
-      open(f'{metrics_data / contamination_txt}_{file_path.split("/")[-1]}', 'w', encoding='utf-8') as cont_file,
-      open(f'{metrics_data / encoding_anomaly_txt}_{file_path.split("/")[-1]}', 'w', encoding='utf-8') as en_file,
-      open(f'{metrics_data / duplicate_ratio_txt}_{file_path.split("/")[-1]}', 'w', encoding='utf-8') as dup_file,
-      open(f'{metrics_data / invalid_lines_txt}_{file_path.split("/")[-1]}', 'w', encoding='utf-8') as invalid_file,
+      open(f'{metrics_data / hygiene_metrics[0]}{file_path.name}', 'w', encoding='utf-8') as cont_file,
+      open(f'{metrics_data / hygiene_metrics[1]}{file_path.name}', 'w', encoding='utf-8') as en_file,
+      open(f'{metrics_data / hygiene_metrics[2]}{file_path.name}', 'w', encoding='utf-8') as dup_file,
+      open(f'{metrics_data / hygiene_metrics[3]}{file_path.name}', 'w', encoding='utf-8') as invalid_file,
   ):
     for line in f:
       total_lines += 1
@@ -129,17 +136,14 @@ def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, 
           'invalid_line_rate': invalid_line_rate}
   
 def main():
-  train_txt = 'data/corpus/train.txt'
-  test_txt = 'data/corpus/test.txt'
-  
-  project_madurai_txt = 'data/cleaned/project_madurai_extracted.txt'
-  tamil_wiki_txt = 'data/cleaned/tamil_wiki_extracted.txt'
-  tamil_cc100_txt = 'data/cleaned/tamil_cc100_extracted.txt'
+  metrics_data, file_paths, hygiene_metrics = setup_environment()
   
   # Calculate corpus hygiene metrics for individual files
-  for path in [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, train_txt, test_txt]:
-    metrics = calculate_hygine_metrcs(path, metrics_data=setup_environment())
-    print(f"Hygiene metrics for {path}:")
+  for path in file_paths:
+    print(f"Calculating hygiene metrics for {path.name}...")
+    metrics = calculate_hygine_metrcs(path, metrics_data=metrics_data, hygiene_metrics=hygiene_metrics)
     print(metrics)
     print()
     
+if __name__ == "__main__":
+  main()

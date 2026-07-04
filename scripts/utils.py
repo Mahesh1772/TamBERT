@@ -47,7 +47,7 @@ def create_directories():
     cleaned_data.mkdir(exist_ok=True, parents=True)
     print('Cleaned folder created...')
     
-    return raw_data, cleaned_data
+    return data, raw_data, cleaned_data
 
 def reservoir_sample(input_file, k=5, encoding='utf-8'):
     """

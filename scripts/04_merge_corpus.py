@@ -8,7 +8,7 @@ def setup_environment():
     Sets up the environment by creating necessary directories and downloading the Tamil Wikipedia dump.
     """
     # Setup the Paths for data storage
-    _, cleaned_data = create_directories()
+    data, _, cleaned_data = create_directories()
 
     # Setup paths for Merged text file and the train/test files
     merged_text_file = cleaned_data / 'merged.txt'
@@ -18,7 +18,7 @@ def setup_environment():
         merged_text_file.unlink()  # Remove the existing file to avoid appending to it
     
     # Setup Corpus directory for storing the train/test files
-    corpus_dir = cleaned_data.parent / 'corpus'
+    corpus_dir = data / 'corpus'
     corpus_dir.mkdir(exist_ok=True, parents=True)
     
     train_file = corpus_dir / 'train.txt'

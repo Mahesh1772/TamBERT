@@ -9,7 +9,7 @@ def setup_environment():
     Sets up the environment by creating necessary directories and downloading the Tamil Wikipedia dump.
     """
     # Setup the Paths for data storage
-    raw_data, cleaned_data = create_directories()
+    _, raw_data, cleaned_data = create_directories()
 
     # Download the CC-100 Monolingual Dataset file
     cc_url = 'https://data.statmt.org/cc-100/ta.txt.xz'

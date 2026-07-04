@@ -11,7 +11,7 @@ def setup_environment():
     Sets up the environment by creating necessary directories and downloading the Tamil Wikipedia dump.
     """
     # Setup the Paths for data storage
-    _, cleaned_data = create_directories()
+    _, _, cleaned_data = create_directories()
 
     # Download the Project Madurai dump htmls
     project_madurai_url = 'https://www.projectmadurai.org/pmworks.html'
