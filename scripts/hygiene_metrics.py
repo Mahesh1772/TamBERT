@@ -26,7 +26,6 @@ def setup_environment():
     hygiene_metrics = [ 'h1_contamination_', 'h2_encoding_anomaly_', 'h3_duplicate_ratio_', 'h5_invalid_lines_' ]
        
     return metrics_data, file_paths, hygiene_metrics
-# error storage files
 
 
 def is_combining_mark(ch: str) -> bool:
@@ -70,8 +69,6 @@ def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, 
   invalid_lines = 0
   duplicates = 0
   anomalous_lines = 0
-
-  print(f'{metrics_data / hygiene_metrics[0]}{file_path.name}')
 
   with(
       open(file_path, 'r', encoding='utf-8') as f,
