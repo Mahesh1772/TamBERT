@@ -14,9 +14,13 @@ def setup_environment():
     # Download the CC-100 Monolingual Dataset file
     cc_url = 'https://data.statmt.org/cc-100/ta.txt.xz'
     cc100_file = raw_data / 'tamil_cc100.txt.xz'
-    print(f"Downloading CC-100: Monolingual Dataset data from {cc_url}...")
-    urlretrieve(cc_url, cc100_file)
-    print(f"Download completed. File saved as {cc100_file}")
+    
+    if cc100_file.exists():
+        print(f"CC-100 file already exists at {cc100_file}. Skipping download.")
+    else:
+        print(f"Downloading CC-100: Monolingual Dataset data from {cc_url}...")
+        urlretrieve(cc_url, cc100_file)
+        print(f"Download completed. File saved as {cc100_file}")
     
     # Create the output file for extracted Tamil text
     extracted_text_file = cleaned_data / 'tamil_cc100_extracted.txt'
