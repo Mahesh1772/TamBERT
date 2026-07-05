@@ -1,6 +1,7 @@
-import shutil, bz2, os, random, fileinput
+import os, random, fileinput
 from pathlib import Path
 from tqdm import tqdm
+import hashlib
 from utils import create_directories, reservoir_sample, TAMIL_CHARACTERS
 
 def setup_environment():
@@ -12,6 +13,8 @@ def setup_environment():
 
     # Setup paths for Merged text file and the train/test files
     merged_text_file = cleaned_data / 'merged.txt'
+    deduped_file = cleaned_data / 'merged_deduped.txt'
+    dropped_duplicates_file = cleaned_data / 'dropped_duplicates.txt'
     
     if merged_text_file.exists():
         print(f"Merged text file already exists at {merged_text_file}. It will be overwritten.")
@@ -24,7 +27,7 @@ def setup_environment():
     train_file = corpus_dir / 'train.txt'
     test_file = corpus_dir / 'test.txt'
 
-    return merged_text_file, train_file, test_file, cleaned_data
+    return merged_text_file, train_file, test_file, cleaned_data, deduped_file, dropped_duplicates_file
 
 
 def merge_text_files(input_dir:Path, output_file:Path):
@@ -37,7 +40,11 @@ def merge_text_files(input_dir:Path, output_file:Path):
     """
     
     cleaned_text_files = list(input_dir.glob('*.txt'))
-    
+    # Only merge the files above the threshold of 0.3 content ratio (i.e., files that have been filtered for quality)
+    cleaned_text_files = [f for f in cleaned_text_files if f.name.endswith('_above_threshold.txt')]
+    print(f"Merging {len(cleaned_text_files)} cleaned text files into {output_file}...")
+    print(f"Files to be merged: {[f.name for f in cleaned_text_files]}")
+
     # Calc size for progress bar
     total_size = sum(os.path.getsize(f) for f in cleaned_text_files)
     
@@ -60,6 +67,45 @@ def merge_text_files(input_dir:Path, output_file:Path):
     print(f"Lines written: {lines_written}, Lines skipped: {lines_skipped}")
     print(f"Merged text files into {output_file} with a total size of {os.path.getsize(output_file)/1024/1024/1024:.2f} GB.")
     
+
+def exact_deduplication(input_file:Path, output_file:Path, dropped_path:Path=None, digest_size=16):
+    """
+    Removes exact duplicate lines from the input file and writes the unique lines to the output file.
+
+    Args:
+        input_file (Path): The path to the input text file.
+        output_file (Path): The path to the output text file where unique lines will be saved.
+        dropped_path (Path, optional): The path to the file where dropped lines will be saved.
+        digest_size (int): The size of the digest to use for deduplication.
+    """
+    print(f"Removing exact duplicates from {input_file} and saving to {output_file}...")
+    
+    seen = set()
+    total_lines = unique_lines = 0
+    dropped_file = open(dropped_path, 'w', encoding='utf-8') if dropped_path else None
+
+    with open(input_file, 'r', encoding='utf-8') as infile, \
+         open(output_file, 'w', encoding='utf-8') as outfile:
+        with tqdm(total=os.path.getsize(input_file), unit='B', unit_scale=True, desc="Removing duplicates") as pbar:
+            for line in infile:
+                total_lines += 1
+                stripped_line = line.rstrip('\n')
+                h = hashlib.blake2b(stripped_line.encode('utf-8'), digest_size=digest_size).digest()
+
+                if h not in seen:
+                    seen.add(h)
+                    outfile.write(line)
+                    unique_lines += 1
+                else:
+                    if dropped_file:
+                        dropped_file.write(line)
+                pbar.update(len(line.encode('utf-8')))
+
+    if dropped_file:
+        dropped_file.close()
+    
+    return total_lines, unique_lines, total_lines - unique_lines
+
 
 def create_file_assignment_list(input_file:Path, test_split=0.1):
     """
@@ -127,13 +173,17 @@ def create_train_test_files(merged_file:Path, train_file:Path, test_file:Path, t
 
 def main():
     # Setup environment and get paths for merged, train, and test files
-    merged_file, train_file, test_file, cleaned_data = setup_environment()
+    merged_file, train_file, test_file, cleaned_data, deduped_file, dropped_duplicates_file = setup_environment()
     
     # Merge all cleaned text files into a single merged file
     merge_text_files(cleaned_data, merged_file)
     
+    # Remove exact duplicates from the merged file and save to a new file
+    total_lines, unique_lines, dropped_lines = exact_deduplication(merged_file, deduped_file, dropped_path=dropped_duplicates_file)
+    print(f"Exact deduplication completed. Total lines: {total_lines}, Unique lines: {unique_lines}, Dropped lines: {dropped_lines}. Deduped file saved at {deduped_file}.")
+    
     # Create train and test files from the merged file
-    create_train_test_files(merged_file, train_file, test_file, test_split=0.1)
+    create_train_test_files(deduped_file, train_file, test_file, test_split=0.1)
     
     # Print sample lines from the train and test files for verification
     sampled_train_lines = reservoir_sample(train_file, k=5)
@@ -147,4 +197,5 @@ def main():
     for line in sampled_test_lines:
         print(line)
         
-main()
+if __name__ == "__main__":
+    main()
