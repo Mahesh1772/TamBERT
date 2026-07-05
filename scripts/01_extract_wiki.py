@@ -109,12 +109,12 @@ def parse_tamil_wiki_dump(bz2_path, out_path, long_lines_path, keep_ns=('0',)):
                 # Strip markup and clean the text
                 tamil_words = extract_tamil_words(clean_wiki_text(raw))
                 if tamil_words:
-                    line = ' '.join(tamil_words)
+                    line = ' '.join(tamil_words) + '\n'
                     if len(line.split()) > 2500:
-                        long_lines_file.write(line + '\n')
+                        long_lines_file.write(line)
                         n_long += 1
                     else:
-                        out_file.write(' '.join(tamil_words) + '\n')
+                        out_file.write(line)
                         n_kept += 1
                 
                 # Free memory by clearing the processed page element
