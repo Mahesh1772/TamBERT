@@ -21,12 +21,6 @@ I built out two QA passes over my TamilBERT training corpus before committing to
 - **H2 sits at 0.04–0.06% everywhere** — well under my 1% threshold, and consistent with defining "anomaly" as replacement-char/orphaned-mark only (excluding NFC-mismatch, which turned out to be normal Tamil vowel-sign composition variance, not corruption).
 - **H4 is 2.5–4% everywhere** — comfortably under my 10% threshold.
 
-### What needs action
-
-**H3 — Duplicate ratio.** Once I corrected for the units bug, tamil_cc100 is **53.1% exact-duplicate lines**. Since cc100 makes up ~92% of my merged corpus by token count, this single source is dragging merged/train/test all into the 35–52% range — deep in "Concerning" territory by my own thresholds. This is plausible given CC100/CommonCrawl-derived corpora are known to carry heavy duplication for lower-resource languages, but it needs fixing: an exact-hash dedup pass (not the Bloom filter I used for measurement — that's fine for estimating a rate, but a false positive during actual removal would silently discard real, unique content).
-
-**H5 — project_madurai's invalid-line rate (11.7%).** I pulled actual flagged lines and found they're mostly single-token lines: recurring e-edition markers (மின்பதிப்பு), invocatory phrases (திருச்சிற்றம்பலம்), section headers, and — separately — bare punctuation or lone digits with no actual word (`-`, `,`, standalone numbers). My call: **keep the real-word headers** — they're genuine recurring convention in a classical-literature source, and project_madurai is only ~2.3% of the merged corpus anyway, so their influence on final vocabulary is small. **Remove the bare-punctuation/digit-only lines** — those carry zero linguistic content regardless of source, unlike a repeated real word.
-
 ## Corpus Profiling Metrics Results
 
 | Metric | project_madurai | tamil_wiki | tamil_cc100 | merged | train | test |
@@ -35,12 +29,6 @@ I built out two QA passes over my TamilBERT training corpus before committing to
 | TTR | 0.141 | 0.048 | 0.014 | 0.016 | 0.017 | 0.040 |
 | MTLD | 135.4 | 63.0 | 218.0 | 190.8 | 203.3 | 548.3 |
 | Unigram entropy (bits) | 15.62 | 13.85 | 14.04 | 14.19 | 14.19 | 14.12 |
-
-- **train (613,365,438) + test (68,122,473) = merged (681,487,911) exactly** — confirms my split arithmetic is internally consistent, no lines lost or duplicated in the split step.
-- **TTR decreases monotonically with source size** (project_madurai smallest → highest TTR; tamil_cc100 largest → lowest TTR) — matches Heaps' law exactly, which is a good sign my vocab-building code is behaving correctly, not a red flag.
-- **MTLD is sensitive to sample size by design, not a bug in my code.** I confirmed this both empirically (running the same corpus at ~9.6K tokens gave MTLD=2211; the identical corpus at 2M+ lines gave 548) and in the literature: McCarthy and Jarvis (2010) introduced MTLD specifically because raw TTR mechanically decays with length, but even MTLD itself needs a minimum length to stabilize — McCarthy and Jarvis (2007) suggested 100–2,000 tokens as a rough floor, and other studies (e.g. Koizumi 2012) found MTLD is less affected by length than TTR specifically once texts reach at least ~100 tokens. My earlier "broken" 9.6K-token test run was simply below or near that stabilization floor — not a defect.
-- **test.txt shows notably higher TTR/MTLD than train.txt** (0.040/548 vs 0.017/203). I initially flagged this as a possible train/test composition mismatch, but confirmed my split code does a proper random per-line shuffle (fixed `seed=42`) across the full merged corpus before assignment — so this isn't a sampling-methodology bug. Given test is ~9x smaller than train in absolute tokens, this divergence is much more likely the same length-sensitivity effect described above rather than a real distributional difference. To confirm rather than assume: I plan to subsample train down to test's exact token count and check whether the numbers converge.
-- **tamil_wiki's sentence-length distribution has a serious outlier tail** — individual lines running up to ~70,000 tokens, while project_madurai and tamil_cc100 both cap naturally around 1,400–1,600 tokens with no such tail. This isolates a likely line-splitting failure in my Wikipedia XML extraction (probably paragraph/article breaks not being preserved as newlines during parsing) — needs inspection and a fix, not just a documentation note, since a 70K-token "line" will break anything downstream that assumes reasonable example sizes.
 
 ## Decisions Made Along the Way (for the record)
 
@@ -73,3 +61,11 @@ I built out two QA passes over my TamilBERT training corpus before committing to
 Steps taken
 - Cleaning project_madurai_extracted.txt and saving to data\cleaned\project_madurai_extracted_cleaned.txt
 Lines written: 1479861, Lines skipped: 206943
+
+| Source                              | Lines dropped | % of source dropped | Lines remaining |
+| ----------------------------------- | ------------- | ------------------- | --------------- |
+| tamil_wiki_extracted.txt            | 163,735       | 4.41% README.md     | 3,547,113       |
+| tamil_wiki_extracted_long_lines.txt | 43            | 81.13% README.md    | 10              |
+| project_madurai_extracted.txt       | 4,463         | 0.30% README.md     | 1,475,398       |
+| tamil_cc100_extracted.txt           | 174,875       | 0.27% README.md     | 63,941,753      |
+| Total corpus                        | 343,116       | 0.50% README.md     | 68,964,274      |
