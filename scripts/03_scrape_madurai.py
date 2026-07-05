@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from tqdm import tqdm
 from urllib.request import urlretrieve
-from utils import create_directories, extract_tamil_words, reservoir_sample
+from utils import TAMIL_CHARACTERS, create_directories, extract_tamil_words, reservoir_sample
 
 def setup_environment():
     """
@@ -79,7 +79,14 @@ def fetch_and_clean_page(item):
             return []
 
         lines = soup.body.get_text(separator='\n').splitlines()
-        return [' '.join(c) for line in lines for c in [clean_project_madurai_text(line)] if c]
+        return [
+            joined
+            for line in lines
+            for c in [clean_project_madurai_text(line)]
+            if c
+            for joined in [' '.join(c)]
+            if TAMIL_CHARACTERS.search(joined)
+        ]
     
     except Exception as e:
         print(f"Error fetching or cleaning page {url}: {e}")

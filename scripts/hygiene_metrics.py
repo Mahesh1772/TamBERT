@@ -116,14 +116,14 @@ def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, 
       non_alpha_chars += sum(1 for _ in NON_ALPHA.findall(line)) 
 
   if total_chars:
-    contamination_rate = disallowed_chars / total_chars
-    non_alpha_rate = non_alpha_chars / total_chars
+    contamination_rate = (disallowed_chars / total_chars) * 100
+    non_alpha_rate = (non_alpha_chars / total_chars) * 100
   else:
     contamination_rate = non_alpha_rate = 0.0
 
   if total_lines:
     encoding_anomaly_rate = (anomalous_lines / total_lines) * 100
-    duplicate_ratio = duplicates / total_lines 
+    duplicate_ratio = (duplicates / total_lines) * 100
     invalid_line_rate = (invalid_lines / total_lines) * 100
   else:
     encoding_anomaly_rate = duplicate_ratio = invalid_line_rate = 0
