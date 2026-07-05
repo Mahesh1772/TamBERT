@@ -21,8 +21,9 @@ def setup_environment():
     
     # Create the output file for extracted Tamil text
     extracted_text_file = cleaned_data / 'tamil_wiki_extracted.txt'
+    long_lines_path = cleaned_data / 'tamil_wiki_extracted_long_lines.txt'
 
-    return wiki_dump_file, extracted_text_file
+    return wiki_dump_file, extracted_text_file, long_lines_path
 
 def clean_wiki_text(text:str) -> str:
     """
@@ -76,20 +77,22 @@ def clean_wiki_text(text:str) -> str:
 
     return text
 
-def parse_tamil_wiki_dump(bz2_path, out_path, keep_ns=('0',)):
+def parse_tamil_wiki_dump(bz2_path, out_path, long_lines_path, keep_ns=('0',)):
     """
     Parses the Tamil Wikipedia dump file, extracts Tamil text, and saves it to an output file.
     
     Args:
         bz2_path (str): Path to the compressed Wikipedia dump file (.bz2).
         out_path (str): Path to the output text file where extracted Tamil text will be saved.
+        long_lines_path (str): Path to the file where long lines will be saved.
         keep_ns (tuple): Tuple of namespace numbers to keep (default is ('0',) for main articles).
     """
     with bz2.open(bz2_path) as bz2_file:
         ctx = etree.iterparse(bz2_file, events=('end',), tag='{*}page')
-        n_pages = n_kept = 0
+        n_pages = n_kept = n_long =0
         
-        with open(out_path, 'w', encoding='utf-8', buffering=1024*1024) as out_file:
+        with open(out_path, 'w', encoding='utf-8', buffering=1024*1024) as out_file, \
+            open(long_lines_path, 'w', encoding='utf-8', buffering=1024*1024) as long_lines_file:
             for _, page in tqdm(ctx, desc='Processing pages'):
                 n_pages += 1
                 
@@ -106,8 +109,13 @@ def parse_tamil_wiki_dump(bz2_path, out_path, keep_ns=('0',)):
                 # Strip markup and clean the text
                 tamil_words = extract_tamil_words(clean_wiki_text(raw))
                 if tamil_words:
-                    out_file.write(' '.join(tamil_words) + '\n')
-                    n_kept += 1
+                    line = ' '.join(tamil_words)
+                    if len(line.split()) > 2500:
+                        long_lines_file.write(line + '\n')
+                        n_long += 1
+                    else:
+                        out_file.write(' '.join(tamil_words) + '\n')
+                        n_kept += 1
                 
                 # Free memory by clearing the processed page element
                 page.clear()
@@ -115,17 +123,17 @@ def parse_tamil_wiki_dump(bz2_path, out_path, keep_ns=('0',)):
                     del page.getparent()[0]
                 
                 if n_pages % 5000 == 0:
-                    print(f"Processed {n_pages} pages, kept {n_kept} pages with Tamil text.")
+                    print(f"Processed {n_pages} pages, kept {n_kept} pages with Tamil text, long lines: {n_long}")
         del ctx  # free memory
     print()
-    print(f"Finished processing. Total pages: {n_pages}, kept pages with Tamil text: {n_kept}. Output saved to {out_path}\n")
+    print(f"Finished processing. Total pages: {n_pages}, kept pages with Tamil text: {n_kept}, long lines: {n_long}. Output saved to {out_path}\n")
 
 def main():
     # Setup the environment and download the Tamil Wikipedia dump
-    wiki_dump_file, extracted_text_file = setup_environment()
+    wiki_dump_file, extracted_text_file, long_lines_path = setup_environment()
     
     # Parse the Tamil Wikipedia dump and extract Tamil text
-    parse_tamil_wiki_dump(wiki_dump_file, extracted_text_file)
+    parse_tamil_wiki_dump(wiki_dump_file, extracted_text_file, long_lines_path)
     
     # Perform reservoir sampling to get a few random lines from the extracted text
     sampled_lines = reservoir_sample(extracted_text_file, k=5)
@@ -134,4 +142,5 @@ def main():
     for line in sampled_lines:
         print(line)
         
-main()
+if __name__ == '__main__':
+    main()

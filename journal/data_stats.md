@@ -68,3 +68,8 @@ I built out two QA passes over my TamilBERT training corpus before committing to
 - Repeated `!`/`?` are preserved intentionally as authentic informal register.
 - Some dates are missing their internal separator (`DD.MM DDDD` instead of `DD.MM.DDDD`) — uncorrected by design.
 - TTR, MTLD, and unigram entropy are **not directly comparable across sources of very different sizes** without controlling for token count — this is a documented property of these measures (Heaps' law for TTR; McCarthy & Jarvis 2007/2010 for MTLD's stabilization floor), not a defect in how they were computed here.
+
+
+Steps taken
+- Cleaning project_madurai_extracted.txt and saving to data\cleaned\project_madurai_extracted_cleaned.txt
+Lines written: 1479861, Lines skipped: 206943
