@@ -14,10 +14,14 @@ def setup_environment():
 
     # Download the Wikipedia dump file
     wiki_dump_url = 'https://dumps.wikimedia.org/tawiki/latest/tawiki-latest-pages-articles.xml.bz2'
-    wiki_dump_file = raw_data / 'tamil_wiki_dump.bz2'
-    print(f"Downloading Wikipedia dump from {wiki_dump_url}...")
-    urlretrieve(wiki_dump_url, wiki_dump_file)
-    print(f"Download completed. File saved as {wiki_dump_file}")
+    wiki_dump_file = raw_data / 'tamil_wiki' / 'tawiki-latest-pages-articles.xml.bz2'
+    
+    if not wiki_dump_file.exists():
+        print(f"Downloading Wikipedia dump from {wiki_dump_url}...")
+        urlretrieve(wiki_dump_url, wiki_dump_file)
+        print(f"Download completed. File saved as {wiki_dump_file}")
+    else:
+        print(f"Wikipedia dump already exists at {wiki_dump_file}. Skipping download.")
     
     # Create the output file for extracted Tamil text
     extracted_text_file = cleaned_data / 'tamil_wiki_extracted.txt'
@@ -78,55 +82,46 @@ def clean_wiki_text(text:str) -> str:
     return text
 
 def parse_tamil_wiki_dump(bz2_path, out_path, long_lines_path, keep_ns=('0',)):
-    """
-    Parses the Tamil Wikipedia dump file, extracts Tamil text, and saves it to an output file.
-    
-    Args:
-        bz2_path (str): Path to the compressed Wikipedia dump file (.bz2).
-        out_path (str): Path to the output text file where extracted Tamil text will be saved.
-        long_lines_path (str): Path to the file where long lines will be saved.
-        keep_ns (tuple): Tuple of namespace numbers to keep (default is ('0',) for main articles).
-    """
     with bz2.open(bz2_path) as bz2_file:
         ctx = etree.iterparse(bz2_file, events=('end',), tag='{*}page')
-        n_pages = n_kept = n_long =0
-        
+        n_pages = n_kept = n_long = 0
+
         with open(out_path, 'w', encoding='utf-8', buffering=1024*1024) as out_file, \
             open(long_lines_path, 'w', encoding='utf-8', buffering=1024*1024) as long_lines_file:
             for _, page in tqdm(ctx, desc='Processing pages'):
                 n_pages += 1
-                
-                # Extract main article namespace only
                 ns_el = page.find('{*}ns')
                 if keep_ns and (ns_el is None or ns_el.text not in keep_ns):
                     page.clear()
                     continue
-                
-                # pull raw text from the <revision><text> element
+
                 text_el = page.find('{*}revision/{*}text')
                 raw = text_el.text if text_el is not None and text_el.text else ''
-                
-                # Strip markup and clean the text
-                tamil_words = extract_tamil_words(clean_wiki_text(raw))
-                if tamil_words:
-                    line = ' '.join(tamil_words) + '\n'
-                    if len(line.split()) > 2500:
-                        long_lines_file.write(line)
-                        n_long += 1
-                    else:
-                        out_file.write(line)
-                        n_kept += 1
-                
-                # Free memory by clearing the processed page element
+                cleaned = clean_wiki_text(raw)
+
+                # Split BEFORE word extraction
+                chunks = re.split(r'\n{2,}|(?<=[.!?])\s+', cleaned)
+
+                for chunk in chunks:
+                    tamil_words = extract_tamil_words(chunk)
+                    if tamil_words:
+                        line = ' '.join(tamil_words) + '\n'
+                        if len(line.split()) > 2500:
+                            long_lines_file.write(line)
+                            n_long += 1
+                        else:
+                            out_file.write(line)
+                            n_kept += 1
+
                 page.clear()
                 while page.getprevious() is not None:
                     del page.getparent()[0]
                 
-                if n_pages % 5000 == 0:
-                    print(f"Processed {n_pages} pages, kept {n_kept} pages with Tamil text, long lines: {n_long}")
+                if n_pages % 50000 == 0:
+                    print(f"Processed {n_pages} pages, kept {n_kept} pages with Tamil text, and {n_long} long lines.")
         del ctx  # free memory
     print()
-    print(f"Finished processing. Total pages: {n_pages}, kept pages with Tamil text: {n_kept}, long lines: {n_long}. Output saved to {out_path}\n")
+    print(f"Finished. Total pages: {n_pages}, kept lines: {n_kept}, long lines: {n_long}.")
 
 def main():
     # Setup the environment and download the Tamil Wikipedia dump
