@@ -25,7 +25,8 @@ def setup_environment():
     tamil_wiki_txt = cleaned_data / Path('tamil_wiki_extracted.txt')
     tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted.txt')
     
-    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt]
+    merged_txt = cleaned_data / Path('merged.txt')
+    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt, merged_txt]
        
     return metrics_data, file_paths
 
@@ -140,3 +141,6 @@ def main():
     
     summary_df = pd.DataFrame(results)
     summary_df.to_csv(metrics_data / 'corpus_metrics_summary.csv', index=False)
+
+if __name__ == "__main__":
+    main()

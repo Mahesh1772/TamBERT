@@ -2,6 +2,7 @@ from pathlib import Path
 import unicodedata
 from pybloom_live import ScalableBloomFilter
 from utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR, create_directories
+import pandas as pd
 
 def setup_environment():
     """
@@ -21,7 +22,8 @@ def setup_environment():
     tamil_wiki_txt = cleaned_data / Path('tamil_wiki_extracted.txt')
     tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted.txt')
     
-    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt]
+    merged_txt = cleaned_data / Path('merged.txt')
+    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt, merged_txt]
 
     hygiene_metrics = [ 'h1_contamination_', 'h2_encoding_anomaly_', 'h3_duplicate_ratio_', 'h5_invalid_lines_' ]
        
@@ -58,7 +60,7 @@ def is_anomalous_line(line: str):
         return True, 'orphaned mark'
     return False, None
 
-def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, initial_capacity=1000, metrics_data=None, hygiene_metrics=None):
+def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, initial_capacity=1000000, metrics_data=None, hygiene_metrics=None):
 
   sbf = ScalableBloomFilter(initial_capacity=initial_capacity, error_rate=error_rate)
 
@@ -134,13 +136,20 @@ def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, 
   
 def main():
   metrics_data, file_paths, hygiene_metrics = setup_environment()
+  results = []
   
   # Calculate corpus hygiene metrics for individual files
   for path in file_paths:
     print(f"Calculating hygiene metrics for {path.name}...")
     metrics = calculate_hygine_metrcs(path, metrics_data=metrics_data, hygiene_metrics=hygiene_metrics)
+    metrics['source'] = path.name
+    results.append(metrics)
     print(metrics)
     print()
     
+  # Save the results to a CSV file
+  summary_df = pd.DataFrame(results)  
+  summary_df.to_csv(metrics_data / 'hygiene_metrics_summary.csv', index=False)
+
 if __name__ == "__main__":
   main()
