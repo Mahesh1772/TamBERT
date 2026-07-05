@@ -21,12 +21,13 @@ def setup_environment():
     train_txt = data / Path('corpus/train.txt')
     test_txt = data / Path('corpus/test.txt')
     
-    project_madurai_txt = cleaned_data / Path('project_madurai_extracted.txt')
-    tamil_wiki_txt = cleaned_data / Path('tamil_wiki_extracted.txt')
-    tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted.txt')
-    
-    merged_txt = cleaned_data / Path('merged.txt')
-    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt, merged_txt]
+    project_madurai_txt = cleaned_data / Path('project_madurai_extracted_above_threshold.txt')
+    tamil_wiki_txt = cleaned_data / Path('tamil_wiki_extracted_above_threshold.txt')
+    tamil_wiki_long_lines_txt = cleaned_data / Path('tamil_wiki_extracted_long_lines_above_threshold.txt')
+    tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted_above_threshold.txt')
+
+    merged_txt = cleaned_data / Path('merged_deduped.txt')
+    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt, merged_txt, tamil_wiki_long_lines_txt]
        
     return metrics_data, file_paths
 
