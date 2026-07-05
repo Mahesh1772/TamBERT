@@ -124,6 +124,7 @@ def main():
     """
     metrics_data, file_paths = setup_environment()
     results = []
+    sent_len_dist_results = {}
 
     # Calculate corpus profiling metrics for individual files
     for path in file_paths:
@@ -131,6 +132,7 @@ def main():
         metrics = calculate_corpus_metrics(path)
         
         sent_len_dist = metrics.pop('Sentence Length Distribution')
+        sent_len_dist_results[path.name] = sent_len_dist
         png_path = save_sentence_length_distribution(sent_len_dist, path.stem, metrics_data)
         print(f"Saved sentence length distribution plot to {png_path}")
         
@@ -139,8 +141,17 @@ def main():
         print(metrics)
         print()
     
+    # Summarize and save results to CSV
     summary_df = pd.DataFrame(results)
     summary_df.to_csv(metrics_data / 'corpus_metrics_summary.csv', index=False)
+    
+    sent_len_summary = []
+    for source, dist in sent_len_dist_results.items():
+        for length, count in dist:
+            sent_len_summary.append({'source': source, 'sentence_length': length, 'count': count})
+
+    sent_len_summary_df = pd.DataFrame(sent_len_summary)
+    sent_len_summary_df.to_csv(metrics_data / 'sentence_length_summary.csv', index=False)
 
 if __name__ == "__main__":
     main()
