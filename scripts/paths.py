@@ -58,7 +58,8 @@ class Paths:
         
         self.hygiene_summary = self.metrics / 'hygiene_metrics_summary.csv'
         self.corpus_metrics_summary = self.metrics / 'corpus_metrics_summary.csv'
-    
+        self.sentence_length_summary = self.metrics / 'sentence_length_summary.csv'
+
     def metrics_targets(self):
         """
         Returns a list of file paths that are targets for hygiene metrics.
