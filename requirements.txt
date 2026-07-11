@@ -8,3 +8,5 @@ regex
 requests
 scipy
 tqdm
+grapheme
+tokenizers
