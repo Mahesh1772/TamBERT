@@ -23,7 +23,7 @@ def setup_environment():
     tamil_wiki_long_lines_txt = cleaned_data / Path('tamil_wiki_extracted_long_lines_above_threshold.txt')
     tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted_above_threshold.txt')
 
-    merged_txt = cleaned_data / Path('merged.txt')
+    merged_txt = cleaned_data / Path('merged_deduped.txt')
     file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt, merged_txt, tamil_wiki_long_lines_txt]
 
     hygiene_metrics = [ 'h1_contamination_', 'h2_encoding_anomaly_', 'h3_duplicate_ratio_', 'h5_invalid_lines_' ]
