@@ -1,7 +1,10 @@
 import shutil, bz2, os, re, random, string, lzma
 from pathlib import Path
+import sys
 from tqdm import tqdm
 from urllib.request import urlretrieve
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
+from paths import Paths
 from utils import create_directories, extract_tamil_words, reservoir_sample
 
 def setup_environment():
@@ -79,13 +82,14 @@ def parse_tamil_cc100(xz_path, out_path):
 
 def main():
     # Setup the environment and download the Tamil Wikipedia dump
-    cc100_file, extracted_text_file = setup_environment()
+    # cc100_file, extracted_text_file = setup_environment()
+    paths = Paths()
     
     # Parse the Tamil CC-100 file and extract Tamil text
-    parse_tamil_cc100(cc100_file, extracted_text_file)
+    parse_tamil_cc100(paths.tamil_cc100, paths.tamil_cc100_extracted)
     
     # Perform reservoir sampling to get a few random lines from the extracted text
-    sampled_lines = reservoir_sample(extracted_text_file, k=5)
+    sampled_lines = reservoir_sample(paths.tamil_cc100_extracted, k=5)
     
     print("Sampled lines from the extracted Tamil text:\n ")
     for line in sampled_lines:

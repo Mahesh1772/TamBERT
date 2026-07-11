@@ -1,14 +1,17 @@
 import shutil, bz2, os, re, random, string, lzma, requests
+import sys
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from tqdm import tqdm
 from urllib.request import urlretrieve
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
+from paths import Paths
 from utils import TAMIL_CHARACTERS, create_directories, extract_tamil_words, reservoir_sample
 
-def setup_environment():
+def get_project_madurai_links():
     """
-    Sets up the environment by creating necessary directories and downloading the Tamil Wikipedia dump.
+    Extracts links to HTML pages from the Project Madurai website.
     """
     # Setup the Paths for data storage
     _, _, cleaned_data = create_directories()
@@ -34,7 +37,7 @@ def setup_environment():
     # Create the output file for extracted Tamil text
     extracted_text_file = cleaned_data / 'tamil_project_madurai_extracted.txt'
 
-    return html_links, extracted_text_file
+    return html_links
 
 def clean_project_madurai_text(text:str) -> str:
     """
@@ -115,14 +118,15 @@ def parse_project_madurai(html_links, out_path):
     
 
 def main():
-    # Setup the environment and download the Tamil Wikipedia dump
-    html_links, extracted_text_file = setup_environment()
+    # Setup the environment and download the Project Madurai HTML links
+    html_links = get_project_madurai_links()
+    paths = Paths()
     
     # Parse the Project Madurai HTML links and extract Tamil text
-    parse_project_madurai(html_links, extracted_text_file)
+    parse_project_madurai(html_links, paths.tamil_madurai)
     
     # Perform reservoir sampling to get a few random lines from the extracted text
-    sampled_lines = reservoir_sample(extracted_text_file, k=5)
+    sampled_lines = reservoir_sample(paths.tamil_madurai, k=5)
     
     print("Sampled lines from the extracted Tamil text:\n ")
     for line in sampled_lines:

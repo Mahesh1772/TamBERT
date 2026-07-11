@@ -1,10 +1,12 @@
 import shutil, bz2, os, re, random, string
+import sys
 from lxml import etree
 from pathlib import Path
 from tqdm import tqdm
 from urllib.request import urlretrieve
 from utils import create_directories, extract_tamil_words, reservoir_sample
-from scripts.paths import Paths
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
+from paths import Paths
 
 def setup_environment():
     """

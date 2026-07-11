@@ -1,7 +1,10 @@
 import os, random, fileinput
 from pathlib import Path
+import sys
 from tqdm import tqdm
 import hashlib
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
+from paths import Paths
 from utils import create_directories, reservoir_sample, TAMIL_CHARACTERS
 
 def setup_environment():
@@ -173,21 +176,22 @@ def create_train_test_files(merged_file:Path, train_file:Path, test_file:Path, t
 
 def main():
     # Setup environment and get paths for merged, train, and test files
-    merged_file, train_file, test_file, cleaned_data, deduped_file, dropped_duplicates_file = setup_environment()
+    # merged_file, train_file, test_file, cleaned_data, deduped_file, dropped_duplicates_file = setup_environment()
+    paths = Paths()
     
     # Merge all cleaned text files into a single merged file
-    merge_text_files(cleaned_data, merged_file)
+    merge_text_files(paths.cleaned_data, paths.merged)
     
     # Remove exact duplicates from the merged file and save to a new file
-    total_lines, unique_lines, dropped_lines = exact_deduplication(merged_file, deduped_file, dropped_path=dropped_duplicates_file)
-    print(f"Exact deduplication completed. Total lines: {total_lines}, Unique lines: {unique_lines}, Dropped lines: {dropped_lines}. Deduped file saved at {deduped_file}.")
+    total_lines, unique_lines, dropped_lines = exact_deduplication(paths.merged, paths.deduped, dropped_path=paths.dropped_duplicates)
+    print(f"Exact deduplication completed. Total lines: {total_lines}, Unique lines: {unique_lines}, Dropped lines: {dropped_lines}. Deduped file saved at {paths.deduped}.")
     
     # Create train and test files from the merged file
-    create_train_test_files(deduped_file, train_file, test_file, test_split=0.1)
+    create_train_test_files(paths.deduped, paths.train, paths.test, test_split=0.1)
     
     # Print sample lines from the train and test files for verification
-    sampled_train_lines = reservoir_sample(train_file, k=5)
-    sampled_test_lines = reservoir_sample(test_file, k=5)
+    sampled_train_lines = reservoir_sample(paths.train, k=5)
+    sampled_test_lines = reservoir_sample(paths.test, k=5)
     
     print("\nSampled lines from the train file:\n")
     for line in sampled_train_lines:
