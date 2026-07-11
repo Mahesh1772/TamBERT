@@ -4,6 +4,7 @@ from pathlib import Path
 from tqdm import tqdm
 from urllib.request import urlretrieve
 from utils import create_directories, extract_tamil_words, reservoir_sample
+from scripts.paths import Paths
 
 def setup_environment():
     """
@@ -125,13 +126,14 @@ def parse_tamil_wiki_dump(bz2_path, out_path, long_lines_path, keep_ns=('0',)):
 
 def main():
     # Setup the environment and download the Tamil Wikipedia dump
-    wiki_dump_file, extracted_text_file, long_lines_path = setup_environment()
+    # wiki_dump_file, extracted_text_file, long_lines_path = setup_environment()
+    paths = Paths()
     
     # Parse the Tamil Wikipedia dump and extract Tamil text
-    parse_tamil_wiki_dump(wiki_dump_file, extracted_text_file, long_lines_path)
+    parse_tamil_wiki_dump(paths.wiki_dump, paths.tamil_wiki, paths.tamil_wiki_long_lines)
     
     # Perform reservoir sampling to get a few random lines from the extracted text
-    sampled_lines = reservoir_sample(extracted_text_file, k=5)
+    sampled_lines = reservoir_sample(paths.tamil_wiki, k=5)
     
     print("Sampled lines from the extracted Tamil text:\n")
     for line in sampled_lines:
