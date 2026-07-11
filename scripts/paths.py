@@ -50,22 +50,26 @@ class Paths:
         self.tamil_cc100_above_threshold = self.cleaned / 'tamil_cc100_extracted_above_threshold.txt'
         
         self.merged = self.cleaned / 'merged.txt'
-        self.dropped_duplicates = self.cleaned / 'dropped_duplicates.txt'
         self.merged_deduped = self.cleaned / 'merged_deduped.txt'
+        self.dropped_duplicates = self.cleaned / 'dropped_duplicates.txt'
+        
         self.train = self.corpus / 'train.txt'
         self.test = self.corpus / 'test.txt'
+        
+        self.hygiene_summary = self.metrics / 'hygiene_metrics_summary.csv'
+        self.corpus_metrics_summary = self.metrics / 'corpus_metrics_summary.csv'
     
     def metrics_targets(self):
         """
         Returns a list of file paths that are targets for hygiene metrics.
         """
         return [
-            self.project_madurai,
-            self.tamil_wiki,
-            self.tamil_cc100,
+            self.project_madurai_above_threshold,
+            self.tamil_wiki_above_threshold,
+            self.tamil_wiki_long_lines_above_threshold,
+            self.tamil_cc100_above_threshold,
             self.test,
             self.train,
             self.merged_deduped,
-            self.tamil_wiki_long_lines
         ]
         

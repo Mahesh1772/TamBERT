@@ -7,33 +7,6 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 
-def setup_environment():
-    """
-    Sets up the environment by creating necessary directories for storing hygiene metrics.
-    """
-    # Setup the Paths for data storage
-    
-    data, _, cleaned_data = create_directories()  # Ensure the data directories exist
-    metrics_data = data / Path('metrics')
-    metrics_data.mkdir(exist_ok=True, parents=True)
-    print('Metrics folder created...')
-    
-    train_txt = data / Path('corpus/train.txt')
-    test_txt = data / Path('corpus/test.txt')
-    
-    project_madurai_txt = cleaned_data / Path('project_madurai_extracted_above_threshold.txt')
-    tamil_wiki_txt = cleaned_data / Path('tamil_wiki_extracted_above_threshold.txt')
-    tamil_wiki_long_lines_txt = cleaned_data / Path('tamil_wiki_extracted_long_lines_above_threshold.txt')
-    tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted_above_threshold.txt')
-
-    merged_txt = cleaned_data / Path('merged_deduped.txt')
-    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt, merged_txt, tamil_wiki_long_lines_txt]
-
-    hygiene_metrics = [ 'h1_contamination_', 'h2_encoding_anomaly_', 'h3_duplicate_ratio_', 'h5_invalid_lines_' ]
-       
-    return metrics_data, file_paths, hygiene_metrics
-
-
 def is_combining_mark(ch: str) -> bool:
     return unicodedata.category(ch) in ('Mn', 'Mc', 'Me')
 
@@ -139,13 +112,14 @@ def calculate_hygine_metrcs(file_path, error_rate=0.001, min_tokens_per_line=2, 
           'invalid_line_rate': invalid_line_rate}
   
 def main():
-  metrics_data, file_paths, hygiene_metrics = setup_environment()
+  paths = Paths()
+  hygiene_metrics = [ 'h1_contamination_', 'h2_encoding_anomaly_', 'h3_duplicate_ratio_', 'h5_invalid_lines_' ]
   results = []
   
   # Calculate corpus hygiene metrics for individual files
-  for path in file_paths:
+  for path in paths.metrics_targets():
     print(f"Calculating hygiene metrics for {path.name}...")
-    metrics = calculate_hygine_metrcs(path, metrics_data=metrics_data, hygiene_metrics=hygiene_metrics)
+    metrics = calculate_hygine_metrcs(path, metrics_data=paths.metrics, hygiene_metrics=hygiene_metrics)
     metrics['source'] = path.name
     results.append(metrics)
     print(metrics)
@@ -153,7 +127,7 @@ def main():
     
   # Save the results to a CSV file
   summary_df = pd.DataFrame(results)  
-  summary_df.to_csv(metrics_data / 'hygiene_metrics_summary.csv', index=False)
+  summary_df.to_csv(paths.hygiene_summary, index=False)
 
 if __name__ == "__main__":
   main()
