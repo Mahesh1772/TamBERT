@@ -1,9 +1,11 @@
 from pathlib import Path
 
-UNK_TOKEN = '<unk>'
-VOCAB_SIZE = 2000
 SAMPLE_TEXT = "அம்மா வீட்டில் இருக்கிறார்!!! நான் பள்ளிக்கு, 12. போகிறேன்."
-BPE_SPECIAL_TOKENS = ['<unk>','<|endoftext|>']
+
+# --- BERT-style constants ---
+UNK_TOKEN = '[UNK]'
+VOCAB_SIZE = 2000
+BPE_SPECIAL_TOKENS = ['[UNK]', '[CLS]', '[SEP]', '[PAD]', '[MASK]']
 
 def calculate_fertility(tokenizer,
                         file_path: Path,

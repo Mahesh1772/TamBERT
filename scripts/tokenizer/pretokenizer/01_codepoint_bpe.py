@@ -1,49 +1,77 @@
 from time import time, process_time
-from tokenizers import Tokenizer, normalizers, pre_tokenizers
+from tokenizers import Tokenizer, normalizers, pre_tokenizers, decoders, processors
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
-import sys
+import sys, json
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
-from metrics import BPE_SPECIAL_TOKENS, SAMPLE_TEXT, UNK_TOKEN, VOCAB_SIZE, calculate_tokenizer_metrics
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # scripts/ — 3 levels up
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from metrics import SAMPLE_TEXT, calculate_tokenizer_metrics, UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
-
-print(str(Path(__file__).resolve().parents[2]))
 
 paths = Paths()
 
 # Define the tokenizer
 codepoint_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
 
-# Define the normalizer
+# Normalizer
 codepoint_bpe.normalizer = normalizers.NFC()
 
-# Define the pre-tokenizer
-codepoint_bpe.pre_tokenizer = pre_tokenizers.Whitespace() 
+# Pre-tokenizer — Metaspace: bakes a word-boundary marker (▁)
+# directly into token text, so decoding survives arbitrary subword splitting
+codepoint_bpe.pre_tokenizer = pre_tokenizers.Metaspace()
 
-# Visualize the pre-tokenization process
 print("Pre-tokenization process:")
 print(codepoint_bpe.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
 
-# Define the trainer
+# Trainer
 codepoint_bpe_trainer = BpeTrainer(special_tokens=BPE_SPECIAL_TOKENS, vocab_size=VOCAB_SIZE)
 
-# Train the tokenizer on the train data
+# Train
 start_cpu_time, start_wall_time = time(), process_time()
 codepoint_bpe.train([str(paths.train)], trainer=codepoint_bpe_trainer)
 end_cpu_time, end_wall_time = time(), process_time()
-
-# Calculate the time taken for training
 cpu_time_taken = end_cpu_time - start_cpu_time
 wall_time_taken = end_wall_time - start_wall_time
 
-# Evaluate the tokenizer on the test data
-train_metrics = calculate_tokenizer_metrics(codepoint_bpe, paths.test)  
+# Decoder — must match the pre-tokenizer's marker scheme
+codepoint_bpe.decoder = decoders.Metaspace()
 
-# Print statistics about the training process
-print(f"Training completed in {cpu_time_taken:.2f} seconds (CPU time) and {wall_time_taken:.2f} seconds (wall time).")
-print(f"Tokenizer vocabulary size: {len(codepoint_bpe.get_vocab())}")
-print(f"Tokenizer fertility on test data: {train_metrics['fertility']:.4f}")
-print(f"Tokenizer OOV rate on test data: {train_metrics['oov_rate']:.4f}")
-print(f"Tokenizer encoding: {codepoint_bpe.encode(SAMPLE_TEXT).tokens}")
+# Post-processor — BERT [CLS]/[SEP] structure, set after training since it
+# needs real token IDs from the trained vocab
+codepoint_bpe.post_processor = processors.TemplateProcessing(
+    single="[CLS] $A [SEP]",
+    pair="[CLS] $A [SEP] $B:1 [SEP]:1",
+    special_tokens=[
+        ("[CLS]", codepoint_bpe.token_to_id("[CLS]")),
+        ("[SEP]", codepoint_bpe.token_to_id("[SEP]")),
+    ],
+)
+
+# Evaluate
+train_metrics = calculate_tokenizer_metrics(codepoint_bpe, paths.test)
+
+# Report
+print(f"Training completed in {cpu_time_taken:.2f}s (CPU) / {wall_time_taken:.2f}s (wall).")
+print(f"Vocabulary size: {len(codepoint_bpe.get_vocab())}")
+print(f"Fertility on test data: {train_metrics['fertility']:.4f}")
+print(f"OOV rate on test data: {train_metrics['oov_rate']:.4f}")
+
+encoded = codepoint_bpe.encode(SAMPLE_TEXT)
+print(f"Encoding (with [CLS]/[SEP]): {encoded.tokens}")
+print(f"Decoded: {codepoint_bpe.decode(encoded.ids)!r}")
+
+# Save
+out_dir = paths.tokenizer_name_generator('codepoint_bpe_metaspace')
+codepoint_bpe.save(str(out_dir / 'tokenizer.json'))
+
+
+with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
+    json.dump({
+        'fertility': train_metrics['fertility'],
+        'oov_rate': train_metrics['oov_rate'],
+        'vocab_size': len(codepoint_bpe.get_vocab()),
+        'wall_time_seconds': wall_time_taken,
+    }, f, indent=2)
+
+print(f"Saved to {out_dir}")
