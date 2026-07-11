@@ -110,12 +110,40 @@ def calculate_corpus_metrics(file_path, error_rate=0.001, min_tokens_per_line=2,
     for line in f:
       total_lines += 1
       line = line.rstrip('\n')
-
+      line_parts = line.split()
+      
       # H5.Invalid lines
-      token_count = len(line.split())
+      token_count = len(line_parts)
       if token_count < min_tokens_per_line:
         invalid_lines += 1
         invalid_file.write(line+NEW_LINE)
+
+      ## Corpus Profiling Metrics
+      # 1. Total words/tokens in corpus
+      total_words += token_count
+      
+      # 2. Sentence length distribution
+      sent_len[token_count] += 1
+      
+      # 3/4. TTR and MLTD
+      for tok in line_parts:
+        idx = vocab.get(tok)
+        if idx is None:
+          idx = len(vocab)
+          vocab[tok] = idx
+        ids.append(idx)
+        
+      # 3. TTR calculation
+      ttr = len(vocab)/ len(ids) if ids else 0.0
+      
+      # 4. MLTD calculation
+      forward_pass = mtld_pass(ids, threshold=0.72)
+      backward_pass = mtld_pass(ids[::-1], threshold=0.72)
+      mtld = (forward_pass + backward_pass) / 2
+      
+      # 5. Unigram entorpy
+      freq = np.bincount(ids)
+      unigram_entropy = scipy_entropy(freq, base=2) if len(freq) > 1 else 0.0
 
       if not line:
         continue
@@ -142,37 +170,6 @@ def calculate_corpus_metrics(file_path, error_rate=0.001, min_tokens_per_line=2,
 
       # H4.Non-Alphabetic character density
       non_alpha_chars += sum(1 for _ in NON_ALPHA.findall(line))
-      
-      ## Corpus Profiling Metrics
-      
-      line_parts = line.split()
-      line_parts_len = len(line_parts)
-      
-      # 1. Total words/tokens in corpus
-      total_words += line_parts_len
-      
-      # 2. Sentence length distribution
-      sent_len[line_parts_len] += 1
-      
-      # 3/4. TTR and MLTD
-      for tok in line_parts:
-        idx = vocab.get(tok)
-        if idx is None:
-          idx = len(vocab)
-          vocab[tok] = idx
-        ids.append(idx)
-        
-      # 3. TTR calculation
-      ttr = len(vocab)/ len(ids) if ids else 0.0
-      
-      # 4. MLTD calculation
-      forward_pass = mtld_pass(ids, threshold=0.72)
-      backward_pass = mtld_pass(ids[::-1], threshold=0.72)
-      mtld = (forward_pass + backward_pass) / 2
-      
-      # 5. Unigram entorpy
-      freq = np.bincount(ids)
-      unigram_entropy = scipy_entropy(freq, base=2) if len(freq) > 1 else 0.0
 
   if total_chars:
     contamination_rate = (disallowed_chars / total_chars) * 100
