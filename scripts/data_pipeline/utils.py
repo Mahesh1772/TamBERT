@@ -35,23 +35,6 @@ def extract_tamil_words(text:str) -> list[str]:
     tamil_words = TAMIL_VOCAB.findall(text)
     return tamil_words
 
-# def create_directories():
-#     """
-#     Sets up the environment by creating necessary directories.
-#     """
-#     # Setup the Paths for data storage
-#     data = Path('data')
-#     data.mkdir(exist_ok=True, parents=True)
-#     print('Data folder created...')
-#     raw_data = data / Path('raw')
-#     raw_data.mkdir(exist_ok=True, parents=True)
-#     print('Raw folder created...')
-#     cleaned_data = data / Path('cleaned')
-#     cleaned_data.mkdir(exist_ok=True, parents=True)
-#     print('Cleaned folder created...')
-    
-#     return data, raw_data, cleaned_data
-
 def reservoir_sample(input_file, k=5, encoding='utf-8'):
     """
     Performs reservoir sampling to randomly select k lines from the input file.
