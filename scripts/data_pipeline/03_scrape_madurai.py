@@ -13,9 +13,6 @@ def get_project_madurai_links():
     """
     Extracts links to HTML pages from the Project Madurai website.
     """
-    # Setup the Paths for data storage
-    _, _, cleaned_data = create_directories()
-
     # Download the Project Madurai dump htmls
     project_madurai_url = 'https://www.projectmadurai.org/pmworks.html'
     r = requests.get(project_madurai_url)
@@ -33,9 +30,6 @@ def get_project_madurai_links():
             html_links[filename] = full_url
             
     print(f"Extracted {len(html_links)} HTML links.")
-    
-    # Create the output file for extracted Tamil text
-    extracted_text_file = cleaned_data / 'tamil_project_madurai_extracted.txt'
 
     return html_links
 

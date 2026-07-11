@@ -5,7 +5,7 @@ from tqdm import tqdm
 from urllib.request import urlretrieve
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
-from utils import create_directories, extract_tamil_words, reservoir_sample
+from utils import extract_tamil_words, reservoir_sample
 
 def setup_environment(cc_url='https://data.statmt.org/cc-100/ta.txt.xz', cc100_file=None):
     """
@@ -71,8 +71,7 @@ def parse_tamil_cc100(xz_path, out_path):
     
 
 def main():
-    # Setup the environment and download the Tamil Wikipedia dump
-    # cc100_file, extracted_text_file = setup_environment()
+    # Setup the environment and download the WebText CC-100 Tamil dataset
     paths = Paths()
     setup_environment(cc100_file=paths.cc100_file)
     

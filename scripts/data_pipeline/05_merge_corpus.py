@@ -71,21 +71,21 @@ def merge_text_files(input_dir:Path, output_file:Path):
     print(f"Merged text files into {output_file} with a total size of {os.path.getsize(output_file)/1024/1024/1024:.2f} GB.")
     
 
-def exact_deduplication(input_file:Path, output_file:Path, dropped_path:Path=None, digest_size=16):
+def exact_deduplication(input_file:Path, output_file:Path, dropped_file:Path=None, digest_size=16):
     """
     Removes exact duplicate lines from the input file and writes the unique lines to the output file.
 
     Args:
         input_file (Path): The path to the input text file.
         output_file (Path): The path to the output text file where unique lines will be saved.
-        dropped_path (Path, optional): The path to the file where dropped lines will be saved.
+        dropped_file (Path, optional): The path to the file where dropped lines will be saved.
         digest_size (int): The size of the digest to use for deduplication.
     """
     print(f"Removing exact duplicates from {input_file} and saving to {output_file}...")
     
     seen = set()
     total_lines = unique_lines = 0
-    dropped_file = open(dropped_path, 'w', encoding='utf-8') if dropped_path else None
+    dropped_file = open(dropped_file, 'w', encoding='utf-8') if dropped_file else None
 
     with open(input_file, 'r', encoding='utf-8') as infile, \
          open(output_file, 'w', encoding='utf-8') as outfile:
@@ -176,14 +176,13 @@ def create_train_test_files(merged_file:Path, train_file:Path, test_file:Path, t
 
 def main():
     # Setup environment and get paths for merged, train, and test files
-    # merged_file, train_file, test_file, cleaned_data, deduped_file, dropped_duplicates_file = setup_environment()
     paths = Paths()
     
     # Merge all cleaned text files into a single merged file
-    merge_text_files(paths.cleaned_data, paths.merged)
+    merge_text_files(paths.cleaned, paths.merged)
     
     # Remove exact duplicates from the merged file and save to a new file
-    total_lines, unique_lines, dropped_lines = exact_deduplication(paths.merged, paths.merged_deduped, dropped_path=paths.dropped_duplicates)
+    total_lines, unique_lines, dropped_lines = exact_deduplication(input_file=paths.merged, output_file=paths.merged_deduped, dropped_file=paths.dropped_duplicates)
     print(f"Exact deduplication completed. Total lines: {total_lines}, Unique lines: {unique_lines}, Dropped lines: {dropped_lines}. Deduped file saved at {paths.merged_deduped}.")
     
     # Create train and test files from the merged file

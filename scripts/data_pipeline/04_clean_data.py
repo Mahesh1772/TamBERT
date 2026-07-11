@@ -4,24 +4,7 @@ import sys
 from tqdm.asyncio import tqdm
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
-from utils import create_directories, reservoir_sample, TAMIL_CHARACTERS
-
-def setup_environment():
-    """
-    Sets up the environment by creating necessary directories and downloading the Tamil Wikipedia dump.
-    """
-    # Setup the Paths for data storage
-    _, _, cleaned_data = create_directories()
-
-    # Setup paths for Merged text file and the train/test files
-    project = cleaned_data / 'tamil_wiki_extracted.txt'
-    long_lines = cleaned_data / 'tamil_wiki_extracted_long_lines.txt'
-    madurai = cleaned_data / 'project_madurai_extracted.txt'
-    tamil_cc100 = cleaned_data / 'tamil_cc100_extracted.txt'
-
-    file_paths = [project, long_lines, madurai, tamil_cc100]
-
-    return file_paths
+from utils import reservoir_sample, TAMIL_CHARACTERS
 
 def real_content_ratio(line):
     tokens = line.split()
@@ -58,13 +41,12 @@ def content_ratio_distribution(file_path, threshold=0.3):
 def main():
     # Setup environment and get paths for the files to process
     content_ratios = defaultdict(list)
-    # file_paths = setup_environment()
     paths = Paths()
     above_file_paths = []
 
-    for file_path in [paths.tamil_wiki, paths.tamil_wiki_long_lines, paths.tamil_madurai, paths.tamil_cc100]:
+    for file_path in [paths.tamil_wiki, paths.tamil_wiki_long_lines, paths.project_madurai, paths.tamil_cc100]:
         print(f"Processing file: {file_path.name}")
-        below, above, total, above_file_path = content_ratio_distribution(file_path, threshold=0.3)
+        _, above, total, above_file_path = content_ratio_distribution(file_path, threshold=0.3)
         content_ratios[file_path.name].append(above / total if total > 0 else 0)
         above_file_paths.append(above_file_path)
 
