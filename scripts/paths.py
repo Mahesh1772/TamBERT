@@ -14,6 +14,7 @@ class Paths:
     cleaned : Path = field(init=False)
     metrics : Path = field(init=False)
     corpus : Path = field(init=False)
+    tokenizer : Path = field(init=False)
     
     project_madurai : Path = field(init=False)
     tamil_wiki : Path = field(init=False)
@@ -30,8 +31,9 @@ class Paths:
         self.cleaned = self.data / 'cleaned'
         self.metrics = self.data / 'metrics'
         self.corpus = self.data / 'corpus'
+        self.tokenizer = self.root / 'tokenizer'
         
-        for directory in [self.data, self.raw, self.cleaned, self.metrics, self.corpus]:
+        for directory in [self.data, self.raw, self.cleaned, self.metrics, self.corpus, self.tokenizer]:
             directory.mkdir(exist_ok=True, parents=True)
             print(f"Directory created or already exists: {directory}")
             
@@ -74,3 +76,13 @@ class Paths:
             self.merged_deduped,
         ]
         
+    def tokenizer_name_generator(self, name: str):
+        """_summary_
+
+        Args:
+            name (str): _description_
+        """
+        d = self.tokenizer / name
+        d.mkdir(exist_ok=True, parents=True)
+        return d
+                            
