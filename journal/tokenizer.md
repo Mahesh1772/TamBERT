@@ -113,3 +113,31 @@ tambert/
 ├── results/                           ← eval outputs, MTEB results
 └── README.md
 ```
+
+```
+scripts/
+├── paths.py
+├── utils.py
+├── data_pipeline/
+│   ├── 01_extract_wiki.py
+│   ├── 02_filter_cc100.py
+│   ├── 03_scrape_madurai.py
+│   ├── 04_clean_data.py
+│   ├── 05_merge_corpus.py
+│   └── 06_calculate_corpus_metrics.py
+└── tokenizer/
+    ├── sandhi.py                          # shared sandhi-split module (imported, not run standalone)
+    ├── grapheme_pretokenizer.py           # shared GraphemePreTokenizer class
+    ├── metrics.py                         # calculate_fertility + calculate_oov (shared by everything below)
+    ├── pretokenizer/
+    │   ├── 01_whitespace_codepoint.py
+    │   ├── 02_whitespace_grapheme.py
+    │   ├── 03_sandhi_codepoint.py
+    │   └── 04_sandhi_grapheme.py
+    └── training/
+        ├── 01_train_bpe.py
+        ├── 02_train_unigram.py
+        ├── 03_train_wordpiece.py
+        ├── 04_train_grapheme_only.py
+        └── 05_evaluate_all.py             # loads each saved tokenizer, runs OOV+fertility, outputs comparison CSV
+```
