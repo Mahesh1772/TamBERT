@@ -1,20 +1,26 @@
 echo Running the data pipeline...
 call conda activate tambert_env
+
 echo Extracting data from Wikipedia...
 python scripts/data_pipeline/01_extract_wiki.py
 echo Wikipedia data extraction complete.
+
 echo Extracting data from Common Crawl...
 python scripts/data_pipeline/02_filter_cc100.py
 echo Common Crawl data filtering complete.
+
 echo Extracting data from Project Madurai...
 python scripts/data_pipeline/03_scrape_madurai.py
 echo Project Madurai data extraction complete.
+
 echo Cleaning the extracted data...
 python scripts/data_pipeline/04_clean_data.py
 echo Data cleaning complete.
+
 echo Deduplicating and Merging the cleaned data...
 python scripts/data_pipeline/05_merge_corpus.py
 echo Deduplication and merging complete.
+
 echo Calculating metrics of cleaned data...
 python scripts/data_pipeline/06_calculate_corpus_metrics.py
 echo Metrics calculation complete.
