@@ -75,3 +75,41 @@ Tokenizer behaviour when encoutering new chars not part of train set:
 | 1    | Best normalization  | Pre-tokenizer = Whitespace; Algo = BPE; merge count          | Normalization       | NFC vs. None                                                                                   | 2      | OOV, Fertility                                         | —                       |
 | 2    | Best pre-tokenizer  | Normalization = Test 1 winner; Algo = BPE; merge count       | Pre-tokenizer stack | (a) Whitespace + codepoint-BPE, (b) Whitespace + grapheme-BPE, (c) Sandhi-split + grapheme-BPE | 3      | OOV, Fertility                                         | Test 1 result           |
 | 3    | Best tokenizer algo | Normalization = Test 1 winner; Pre-tokenizer = Test 2 winner | Tokenizer algorithm | BPE, Unigram, WordPiece(BERT), GPE (grapheme-only, reference floor)                            | 4      | OOV, Fertility (+ note GPE is non-comparable baseline) | Test 1 + Test 2 results |
+
+### Folder structure
+
+```
+tambert/
+├── data/
+│   ├── raw/
+│   │   ├── tamil_wiki/
+│   │   ├── cc100/
+│   │   └── project_madurai/
+│   ├── cleaned/
+│   │   ├── tamil_wiki.csv
+│   │   ├── cc100.csv
+│   │   └── project_madurai.csv
+│   └── corpus/
+│       ├── corpus_90pct.txt
+│       └── corpus_10pct.txt
+│
+├── notebooks/
+│   ├── 01_fetch_and_clean.ipynb       ← experimental, messy, exploratory
+│   ├── 02_train_tokenizer.ipynb
+│   ├── 03_mlm_pretrain.ipynb
+│   ├── 04_nli_finetune.ipynb
+│   └── 05_sts_finetune_and_eval.ipynb
+│
+├── scripts/
+│   └── data_pipeline/                 ← not preprocess, see note below
+│       ├── 01_extract_wiki.py
+│       ├── 02_scrape_madurai.py
+│       ├── 03_filter_cc100.py
+│       ├── 04_merge_corpus.py
+│       └── config.yaml
+│
+├── tokenizer/                         ← saved tokenizer artifacts go here
+├── checkpoints/                       ← model checkpoints
+├── results/                           ← eval outputs, MTEB results
+└── README.md
+```

@@ -1,4 +1,4 @@
-import shutil, bz2, os, re, random, string
+import bz2, re
 import sys
 from lxml import etree
 from pathlib import Path

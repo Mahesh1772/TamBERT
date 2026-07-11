@@ -1,4 +1,4 @@
-import shutil, bz2, os, re, random, string, lzma
+import re, lzma
 from pathlib import Path
 import sys
 from tqdm import tqdm
