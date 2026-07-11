@@ -10,30 +10,6 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 
-def setup_environment():
-    """
-    Sets up the environment by creating necessary directories for storing corpus profiling metrics.
-    """
-    # Setup the Paths for data storage
-    
-    data, _, cleaned_data = create_directories()  # Ensure the data directories exist
-    metrics_data = data / Path('metrics')
-    metrics_data.mkdir(exist_ok=True, parents=True)
-    print('Metrics folder created...')
-    
-    train_txt = data / Path('corpus/train.txt')
-    test_txt = data / Path('corpus/test.txt')
-    
-    project_madurai_txt = cleaned_data / Path('project_madurai_extracted_above_threshold.txt')
-    tamil_wiki_txt = cleaned_data / Path('tamil_wiki_extracted_above_threshold.txt')
-    tamil_wiki_long_lines_txt = cleaned_data / Path('tamil_wiki_extracted_long_lines_above_threshold.txt')
-    tamil_cc100_txt = cleaned_data / Path('tamil_cc100_extracted_above_threshold.txt')
-
-    merged_txt = cleaned_data / Path('merged_deduped.txt')
-    file_paths = [project_madurai_txt, tamil_wiki_txt, tamil_cc100_txt, test_txt, train_txt, merged_txt, tamil_wiki_long_lines_txt]
-       
-    return metrics_data, file_paths
-
 def mtld_pass(ids, threshold=0.72):
   factors = 0
   types = set()
@@ -126,18 +102,18 @@ def main():
     """
     Main function to calculate corpus profiling metrics for the specified text files.
     """
-    metrics_data, file_paths = setup_environment()
+    paths = Paths()
     results = []
     sent_len_dist_results = {}
 
     # Calculate corpus profiling metrics for individual files
-    for path in file_paths:
+    for path in paths.metrics_targets():
         print(f"Calculating corpus metrics for {path.name}...")
         metrics = calculate_corpus_metrics(path)
         
         sent_len_dist = metrics.pop('Sentence Length Distribution')
         sent_len_dist_results[path.name] = sent_len_dist
-        png_path = save_sentence_length_distribution(sent_len_dist, path.stem, metrics_data)
+        png_path = save_sentence_length_distribution(sent_len_dist, path.stem, paths.metrics)
         print(f"Saved sentence length distribution plot to {png_path}")
         
         metrics['source'] = path.name
@@ -147,7 +123,7 @@ def main():
     
     # Summarize and save results to CSV
     summary_df = pd.DataFrame(results)
-    summary_df.to_csv(metrics_data / 'corpus_metrics_summary_new.csv', index=False)
+    summary_df.to_csv(paths.corpus_metrics_summary, index=False)
     
     sent_len_summary = []
     for source, dist in sent_len_dist_results.items():
@@ -155,7 +131,7 @@ def main():
             sent_len_summary.append({'source': source, 'sentence_length': length, 'count': count})
 
     sent_len_summary_df = pd.DataFrame(sent_len_summary)
-    sent_len_summary_df.to_csv(metrics_data / 'sentence_length_summary.csv', index=False)
+    sent_len_summary_df.to_csv(paths.sentence_length_summary, index=False)
 
 if __name__ == "__main__":
     main()
