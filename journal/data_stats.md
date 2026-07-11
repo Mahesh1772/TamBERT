@@ -81,34 +81,36 @@ Train/test split (90/10, seed=42, unchanged shuffle logic) on deduped corpus:
 
 ---
 
-## Run 2 — Hygiene Metrics (post-clean) — template
+## Run 2 — Hygiene Metrics (post-clean)
 
 | Metric | madurai | wiki | cc100 | merged | train | test |
 |---|---|---|---|---|---|---|
-| H1 Contamination | | | | | | |
-| H2 Encoding anomaly | | | | | | |
-| H3 Duplicate ratio | | | | | | |
-| H4 Non-alpha density | | | | | | |
-| H5 Invalid line rate | | | | | | |
-
-Expected: H3 → near 0% (post-dedup). H5 (madurai) → drop from 11.7% (headers/punctuation-only lines removed pre-merge).
+| H1 Contamination | 0% | 0% | 0% | TBD | 0% | 0% |
+| H2 Encoding anomaly | 0.050% | 0.004% | 0.041% | TBD | 0.065% | 0.067% |
+| H3 Duplicate ratio | 6.8% | 19.3% | 53.0% | TBD | 0.18% | 0.07% |
+| H4 Non-alpha density | 1.8% | 3.1% | 2.5% | TBD | 2.4% | 2.4% |
+| H5 Invalid line rate | 4.4% | **9.5%** | 2.9% | TBD | 0.48% | 0.48% |
 
 **Changed:**
+- H3 — duplicate ratio confirmed near-zero on train (0.18%) and test (0.07%), validating the blake2b exact-hash dedup fix. Per-source rates (madurai 6.8%, wiki 19.3%, cc100 53.0%) still reflect pre-dedup state by design — dedup runs at merge time only, not per-source.
+- H5 — wiki spiked to 9.5% (Concerning tier, up from 1.7% baseline). Root cause: repeated Wikipedia section headers (மேற்கோள்கள் "References", உசாத்துணை "Bibliography") and single-letter alphabet entries — real words, not corruption, correctly short by nature. Not fixed with a new filter; train/test already show 0.48%, confirming dilution + existing dedup step resolves it without further engineering.
+- merged row pending re-run — this pass measured un-deduped `merged.txt` by mistake. Re-run on `merged_deduped.txt` before treating this table as final.
 
 ---
 
-## Run 2 — Corpus Profiling Metrics (post-clean) — template
+## Run 2 — Corpus Profiling Metrics (post-clean)
 
 | Metric | madurai | wiki | cc100 | merged | train | test |
 |---|---|---|---|---|---|---|
-| Word count | | | | | | |
-| TTR | | | | | | |
-| MTLD | | | | | | |
-| Unigram entropy | | | | | | |
-
-Expected: TTR up post-dedup (fewer repeated tokens per corpus size); word counts down ~50% in cc100/merged/train/test.
+| Word count | 14.9M | 39.6M | 623.4M | 437.4M | 393.6M | 43.7M |
+| TTR | 0.147 | 0.050 | 0.014 | 0.025 | 0.026 | 0.055 |
+| MTLD | 374.3 | 103.9 | 222.3 | 224.7 | 242.2 | 859.6 |
+| Unigram entropy | 15.92 | 14.07 | 14.04 | 14.42 | 14.42 | 14.31 |
 
 **Changed:**
+- TTR rose across the board post-filter/dedup as predicted (train 0.017→0.026, test 0.040→0.055) — fewer repeated tokens relative to corpus size, consistent with dedup removing exact repeats.
+- MTLD rose more than word-count change alone predicts for madurai (135.4→374.3, ~4% word drop) and wiki (63.0→103.9, ~5.5% word drop). Attributed to removal of index/concordance entries and encoding-reference tables — content that clusters repetition locally, which disproportionately affects MTLD's windowing mechanism beyond what raw size reduction explains.
+- Token-level word-count drop (cc100/merged/train/test, ~35–36%) is smaller than the line-level dedup drop (50.6%) — duplicate lines skew shorter than average (repeated short headlines/boilerplate), so token loss is less steep than line loss.
 
 ---
 
