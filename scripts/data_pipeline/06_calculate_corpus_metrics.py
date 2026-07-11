@@ -95,6 +95,10 @@ def calculate_corpus_metrics(file_path, error_rate=0.001, min_tokens_per_line=2,
   invalid_lines = 0
   duplicates = 0
   anomalous_lines = 0
+  sent_len = defaultdict(int)
+  total_words = 0
+  vocab = {}
+  ids = array('I')
 
   with(
       open(file_path, 'r', encoding='utf-8') as f,
@@ -107,7 +111,7 @@ def calculate_corpus_metrics(file_path, error_rate=0.001, min_tokens_per_line=2,
       total_lines += 1
       line = line.rstrip('\n')
 
-      # Invalid lines
+      # H5.Invalid lines
       token_count = len(line.split())
       if token_count < min_tokens_per_line:
         invalid_lines += 1
@@ -116,28 +120,59 @@ def calculate_corpus_metrics(file_path, error_rate=0.001, min_tokens_per_line=2,
       if not line:
         continue
 
-      # Contamination calculations
+      # H1.Contamination calculations
       total_chars += len(line)
       disallowed = DISALLOWED.findall(line)
       if disallowed:
         disallowed_chars += len(disallowed)
         cont_file.write(line+NEW_LINE)
 
-      # Error Anomaly calculation
+      # H2.Encoding Anomaly calculation
       anomaly, error = is_anomalous_line(line)
       if anomaly:
         anomalous_lines += 1
         en_file.write(error+','+line+NEW_LINE)
       
-      # Duplicate Ratio
+      # H3.Duplicate Ratio
       if line in sbf:
         duplicates += 1
         dup_file.write(line+NEW_LINE)
       else:
         sbf.add(line)
 
-      # Non-Alphabetic character density
-      non_alpha_chars += sum(1 for _ in NON_ALPHA.findall(line)) 
+      # H4.Non-Alphabetic character density
+      non_alpha_chars += sum(1 for _ in NON_ALPHA.findall(line))
+      
+      ## Corpus Profiling Metrics
+      
+      line_parts = line.split()
+      line_parts_len = len(line_parts)
+      
+      # 1. Total words/tokens in corpus
+      total_words += line_parts_len
+      
+      # 2. Sentence length distribution
+      sent_len[line_parts_len] += 1
+      
+      # 3/4. TTR and MLTD
+      for tok in line_parts:
+        idx = vocab.get(tok)
+        if idx is None:
+          idx = len(vocab)
+          vocab[tok] = idx
+        ids.append(idx)
+        
+      # 3. TTR calculation
+      ttr = len(vocab)/ len(ids) if ids else 0.0
+      
+      # 4. MLTD calculation
+      forward_pass = mtld_pass(ids, threshold=0.72)
+      backward_pass = mtld_pass(ids[::-1], threshold=0.72)
+      mtld = (forward_pass + backward_pass) / 2
+      
+      # 5. Unigram entorpy
+      freq = np.bincount(ids)
+      unigram_entropy = scipy_entropy(freq, base=2) if len(freq) > 1 else 0.0
 
   if total_chars:
     contamination_rate = (disallowed_chars / total_chars) * 100
@@ -152,29 +187,61 @@ def calculate_corpus_metrics(file_path, error_rate=0.001, min_tokens_per_line=2,
   else:
     encoding_anomaly_rate = duplicate_ratio = invalid_line_rate = 0
 
-  return {'contamination_rate': contamination_rate,
+  hygiene = {'contamination_rate': contamination_rate,
           'non_alpha_rate': non_alpha_rate,
           'encoding_anomaly_rate': encoding_anomaly_rate,
           'duplicate_ratio': duplicate_ratio,
           'invalid_line_rate': invalid_line_rate}
   
+  corpus_metrics = {'total_words': total_words,
+          'sentence_length_distribution': dict(sent_len),
+          'ttr': ttr,
+          'mtld': mtld,
+          'unigram_entropy': unigram_entropy}
+    
+  return {**hygiene, **corpus_metrics}
+  
 def main():
   paths = Paths()
   hygiene_metrics = [ 'h1_contamination_', 'h2_encoding_anomaly_', 'h3_duplicate_ratio_', 'h5_invalid_lines_' ]
-  results = []
+  hygiene_results = []
+  corpus_metrics_results = []
+  sent_len_dist_results = {}
   
   # Calculate corpus hygiene metrics for individual files
   for path in paths.metrics_targets():
     print(f"Calculating hygiene metrics for {path.name}...")
-    metrics = calculate_hygine_metrcs(path, metrics_data=paths.metrics, hygiene_metrics=hygiene_metrics)
-    metrics['source'] = path.name
-    results.append(metrics)
-    print(metrics)
+    hygiene, corpus = calculate_corpus_metrics(path, metrics_data=paths.metrics, hygiene_metrics=hygiene_metrics)
+    hygiene['source'] = path.name
+    corpus['source'] = path.name
+    hygiene_results.append(hygiene)
+    corpus_metrics_results.append(corpus)
+    print(hygiene)
+    print(corpus)
+    
+    sent_len_dist = corpus.pop('sentence_length_distribution')
+    sent_len_dist_results[path.name] = sent_len_dist
+    png_path = save_sentence_length_distribution(sent_len_dist, path.stem, paths.metrics)
+    print(f"Saved sentence length distribution plot to {png_path}")
+    
     print()
     
   # Save the results to a CSV file
-  summary_df = pd.DataFrame(results)  
+  
+  sent_len_summary = []
+  for source, dist in sent_len_dist_results.items():
+    for length, count in dist:
+      sent_len_summary.append({'source': source, 'sentence_length': length, 'count': count})
+  
+  summary_df = pd.DataFrame(hygiene_results)  
   summary_df.to_csv(paths.hygiene_summary, index=False)
+
+  sent_len_df = pd.DataFrame(sent_len_summary)
+  sent_len_df.to_csv(paths.sentence_length_summary, index=False)
+
+  corpus_df = pd.DataFrame(corpus_metrics_results)
+  corpus_df.to_csv(paths.corpus_summary, index=False)
+  
 
 if __name__ == "__main__":
   main()
