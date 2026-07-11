@@ -36,10 +36,18 @@ class Paths:
             print(f"Directory created or already exists: {directory}")
             
         # Define file paths
+        self.project_madurai = self.cleaned / 'project_madurai_extracted.txt'
         self.project_madurai = self.cleaned / 'project_madurai_extracted_above_threshold.txt'
-        self.tamil_wiki = self.cleaned / 'tamil_wiki_extracted_above_threshold.txt'
-        self.tamil_wiki_long_lines = self.cleaned / 'tamil_wiki_extracted_long_lines_above_threshold.txt'
-        self.tamil_cc100 = self.cleaned / 'tamil_cc100_extracted_above_threshold.txt'
+        
+        self.wiki_dump = self.raw / 'tamilwiki-latest-pages-articles.xml.bz2'
+        self.tamil_wiki = self.cleaned / 'tamil_wiki_extracted.txt'
+        self.tamil_wiki_long_lines = self.cleaned / 'tamil_wiki_extracted_long_lines.txt'
+        
+        self.cc100_file = self.raw / 'tamil_cc100.txt.xz'
+        self.tamil_cc100 = self.cleaned / 'tamil_cc100_extracted.txt'
+        
+        self.merged = self.cleaned / 'merged.txt'
+        self.dropped_duplicates = self.cleaned / 'dropped_duplicates.txt'
         self.merged_deduped = self.cleaned / 'merged_deduped.txt'
         self.train = self.corpus / 'train.txt'
         self.test = self.corpus / 'test.txt'

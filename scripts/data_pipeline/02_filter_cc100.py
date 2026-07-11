@@ -7,16 +7,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py`
 from paths import Paths
 from utils import create_directories, extract_tamil_words, reservoir_sample
 
-def setup_environment():
+def setup_environment(cc_url='https://data.statmt.org/cc-100/ta.txt.xz', cc100_file=None):
     """
     Sets up the environment by creating necessary directories and downloading the Tamil Wikipedia dump.
     """
-    # Setup the Paths for data storage
-    _, raw_data, cleaned_data = create_directories()
-
-    # Download the CC-100 Monolingual Dataset file
-    cc_url = 'https://data.statmt.org/cc-100/ta.txt.xz'
-    cc100_file = raw_data / 'tamil_cc100.txt.xz'
     
     if cc100_file.exists():
         print(f"CC-100 file already exists at {cc100_file}. Skipping download.")
@@ -24,11 +18,7 @@ def setup_environment():
         print(f"Downloading CC-100: Monolingual Dataset data from {cc_url}...")
         urlretrieve(cc_url, cc100_file)
         print(f"Download completed. File saved as {cc100_file}")
-    
-    # Create the output file for extracted Tamil text
-    extracted_text_file = cleaned_data / 'tamil_cc100_extracted.txt'
 
-    return cc100_file, extracted_text_file
 
 def clean_cc100_text(text:str) -> str:
     """
@@ -84,12 +74,13 @@ def main():
     # Setup the environment and download the Tamil Wikipedia dump
     # cc100_file, extracted_text_file = setup_environment()
     paths = Paths()
+    setup_environment(cc100_file=paths.cc100_file)
     
     # Parse the Tamil CC-100 file and extract Tamil text
-    parse_tamil_cc100(paths.tamil_cc100, paths.tamil_cc100_extracted)
+    parse_tamil_cc100(paths.cc100_file, paths.tamil_cc100)
     
     # Perform reservoir sampling to get a few random lines from the extracted text
-    sampled_lines = reservoir_sample(paths.tamil_cc100_extracted, k=5)
+    sampled_lines = reservoir_sample(paths.tamil_cc100, k=5)
     
     print("Sampled lines from the extracted Tamil text:\n ")
     for line in sampled_lines:

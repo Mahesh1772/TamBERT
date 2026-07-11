@@ -183,11 +183,11 @@ def main():
     merge_text_files(paths.cleaned_data, paths.merged)
     
     # Remove exact duplicates from the merged file and save to a new file
-    total_lines, unique_lines, dropped_lines = exact_deduplication(paths.merged, paths.deduped, dropped_path=paths.dropped_duplicates)
-    print(f"Exact deduplication completed. Total lines: {total_lines}, Unique lines: {unique_lines}, Dropped lines: {dropped_lines}. Deduped file saved at {paths.deduped}.")
+    total_lines, unique_lines, dropped_lines = exact_deduplication(paths.merged, paths.merged_deduped, dropped_path=paths.dropped_duplicates)
+    print(f"Exact deduplication completed. Total lines: {total_lines}, Unique lines: {unique_lines}, Dropped lines: {dropped_lines}. Deduped file saved at {paths.merged_deduped}.")
     
     # Create train and test files from the merged file
-    create_train_test_files(paths.deduped, paths.train, paths.test, test_split=0.1)
+    create_train_test_files(paths.merged_deduped, paths.train, paths.test, test_split=0.1)
     
     # Print sample lines from the train and test files for verification
     sampled_train_lines = reservoir_sample(paths.train, k=5)

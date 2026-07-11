@@ -4,33 +4,23 @@ from lxml import etree
 from pathlib import Path
 from tqdm import tqdm
 from urllib.request import urlretrieve
-from utils import create_directories, extract_tamil_words, reservoir_sample
+from utils import extract_tamil_words, reservoir_sample
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 
-def setup_environment():
+def setup_environment(wiki_dump_url='https://dumps.wikimedia.org/tawiki/latest/tawiki-latest-pages-articles.xml.bz2',
+                      wiki_dump=None):
     """
     Sets up the environment by creating necessary directories and downloading the Tamil Wikipedia dump.
     """
-    # Setup the Paths for data storage
-    _, raw_data, cleaned_data = create_directories()
-
-    # Download the Wikipedia dump file
-    wiki_dump_url = 'https://dumps.wikimedia.org/tawiki/latest/tawiki-latest-pages-articles.xml.bz2'
-    wiki_dump_file = raw_data / 'tamil_wiki' / 'tawiki-latest-pages-articles.xml.bz2'
     
-    if not wiki_dump_file.exists():
+    if not wiki_dump.exists():
         print(f"Downloading Wikipedia dump from {wiki_dump_url}...")
-        urlretrieve(wiki_dump_url, wiki_dump_file)
-        print(f"Download completed. File saved as {wiki_dump_file}")
+        urlretrieve(wiki_dump_url, wiki_dump)
+        print(f"Download completed. File saved as {wiki_dump}")
     else:
-        print(f"Wikipedia dump already exists at {wiki_dump_file}. Skipping download.")
+        print(f"Wikipedia dump already exists at {wiki_dump}. Skipping download.")
     
-    # Create the output file for extracted Tamil text
-    extracted_text_file = cleaned_data / 'tamil_wiki_extracted.txt'
-    long_lines_path = cleaned_data / 'tamil_wiki_extracted_long_lines.txt'
-
-    return wiki_dump_file, extracted_text_file, long_lines_path
 
 def clean_wiki_text(text:str) -> str:
     """
@@ -128,8 +118,8 @@ def parse_tamil_wiki_dump(bz2_path, out_path, long_lines_path, keep_ns=('0',)):
 
 def main():
     # Setup the environment and download the Tamil Wikipedia dump
-    # wiki_dump_file, extracted_text_file, long_lines_path = setup_environment()
     paths = Paths()
+    setup_environment(wiki_dump=paths.wiki_dump)
     
     # Parse the Tamil Wikipedia dump and extract Tamil text
     parse_tamil_wiki_dump(paths.wiki_dump, paths.tamil_wiki, paths.tamil_wiki_long_lines)
