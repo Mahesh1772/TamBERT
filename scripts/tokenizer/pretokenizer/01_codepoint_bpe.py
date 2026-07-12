@@ -37,6 +37,9 @@ wall_time_taken = end_wall_time - start_wall_time
 # Decoder — must match the pre-tokenizer's marker scheme
 codepoint_bpe.decoder = decoders.Metaspace()
 
+# Evaluate
+train_metrics = calculate_tokenizer_metrics(codepoint_bpe, paths.test)
+
 # Post-processor — BERT [CLS]/[SEP] structure, set after training since it
 # needs real token IDs from the trained vocab
 codepoint_bpe.post_processor = processors.TemplateProcessing(
@@ -47,9 +50,6 @@ codepoint_bpe.post_processor = processors.TemplateProcessing(
         ("[SEP]", codepoint_bpe.token_to_id("[SEP]")),
     ],
 )
-
-# Evaluate
-train_metrics = calculate_tokenizer_metrics(codepoint_bpe, paths.test)
 
 # Report
 print(f"Training completed in {cpu_time_taken:.2f}s (CPU) / {wall_time_taken:.2f}s (wall).")
