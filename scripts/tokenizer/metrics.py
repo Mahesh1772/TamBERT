@@ -4,18 +4,18 @@ SAMPLE_TEXT = "அம்மா வீட்டில் இருக்கிற
 
 # --- BERT-style constants ---
 UNK_TOKEN = '[UNK]'
-VOCAB_SIZE = 2000
+VOCAB_SIZE = 5
 BPE_SPECIAL_TOKENS = ['[UNK]', '[CLS]', '[SEP]', '[PAD]', '[MASK]']
 
 def calculate_fertility(tokenizer,
                         file_path: Path,
-                        unknown_token: str = '<unk>'):
+                        unknown_token: str = UNK_TOKEN):
     """Calculate the fertility of a tokenizer on a given text file.
 
     Args:
         tokenizer (_type_): tokenizer object with a `tokenize` method that takes a string and returns a list of tokens.
         file_path (Path): path to the text file for which to calculate fertility.
-        unknown_token (str, optional): The token used to represent unknown words. Defaults to '<unk>'.
+        unknown_token (str, optional): The token used to represent unknown words. Defaults to '[UNK]'.
     """
 
     unk_id = tokenizer.token_to_id(unknown_token)
@@ -38,13 +38,13 @@ def calculate_fertility(tokenizer,
     fertility = total_subword_tokens / total_words if total_words > 0 else 0
     return fertility
 
-def calculate_oov_rate(tokenizer, file_path: Path, unknown_token: str = '<unk>'):
+def calculate_oov_rate(tokenizer, file_path: Path, unknown_token: str = UNK_TOKEN):
     """Calculate the out-of-vocabulary (OOV) rate of a tokenizer on a given text file.
 
     Args:
         tokenizer (_type_): tokenizer object with a `tokenize` method that takes a string and returns a list of tokens.
         file_path (Path): path to the text file for which to calculate OOV rate.
-        unknown_token (str, optional): The token used to represent unknown words. Defaults to '<unk>'.
+        unknown_token (str, optional): The token used to represent unknown words. Defaults to '[UNK]'.
     """
     
     unk_id = tokenizer.token_to_id(unknown_token)
@@ -67,13 +67,13 @@ def calculate_oov_rate(tokenizer, file_path: Path, unknown_token: str = '<unk>')
     oov_rate = oov_words / total_tokens if total_tokens > 0 else 0
     return oov_rate * 100  # Return as a percentage
 
-def calculate_tokenizer_metrics(tokenizer, file_path: Path, unknown_token: str = '<unk>'):
+def calculate_tokenizer_metrics(tokenizer, file_path: Path, unknown_token: str = UNK_TOKEN):
     """Calculate both fertility and OOV rate for a given tokenizer on a specified text file.
 
     Args:
         tokenizer (_type_): tokenizer object with a `tokenize` method that takes a string and returns a list of tokens.
         file_path (Path): path to the text file for which to calculate metrics.
-        unknown_token (str, optional): The token used to represent unknown words. Defaults to '<unk>'.
+        unknown_token (str, optional): The token used to represent unknown words. Defaults to '[UNK]'.
     """
     
     unk_id = tokenizer.token_to_id(unknown_token)

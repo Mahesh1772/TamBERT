@@ -29,7 +29,7 @@ codepoint_bpe_trainer = BpeTrainer(special_tokens=BPE_SPECIAL_TOKENS, vocab_size
 
 # Train
 start_cpu_time, start_wall_time = time(), process_time()
-codepoint_bpe.train([str(paths.train)], trainer=codepoint_bpe_trainer)
+codepoint_bpe.train([str(paths.test)], trainer=codepoint_bpe_trainer)
 end_cpu_time, end_wall_time = time(), process_time()
 cpu_time_taken = end_cpu_time - start_cpu_time
 wall_time_taken = end_wall_time - start_wall_time
