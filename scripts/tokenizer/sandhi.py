@@ -4,15 +4,13 @@ This directly inherits from the original sandhi.py from 'Aagathiyam: Sandhi awar
 import regex as re
 from dataclasses import dataclass
 from typing import List, Tuple
-
+from typing import Set  # add to your existing typing import line
 from tokenizers import PreTokenizedString, NormalizedString
 
 @dataclass
 class Rule:
     pattern: re.Pattern
     repl: str
-
-BOUND = "⟂"  # boundary sentinel
 
 TA_RULES = [
 
@@ -174,74 +172,6 @@ Rule(re.compile(r"([௦-௯0-9]+)\s*(ஐ)"), r"\1" + BOUND + r"\2"),
 Rule(re.compile(r"(\S)\s+(?=\S)"), r"\1" + BOUND),
 ]
 
-# English: pass-through (no phonological sandhi)
-EN_RULES: List[Rule] = []
-
-LANG_RULES = {
-    "ta": TA_RULES,
-    "tamil": TA_RULES,   # alias
-    "en": EN_RULES,
-    "english": EN_RULES,
-}
-
-# ---------- Helpers for code-mixed handling ----------
-
-TAMIL_RANGE = r"\u0B80-\u0BFF"
-RE_TAMIL = re.compile(fr"[{TAMIL_RANGE}]")
-RE_WORD_OR_SPACE_OR_PUNC = re.compile(r"\w+|\s+|[^\w\s]")
-
-def apply_rules(text: str, rules: List[Rule]) -> str:
-    out = text
-    for r in rules:
-        out = r.pattern.sub(r.repl, out)
-    return out
-
-def sandhi_mark(text: str, lang="ta"):
-    rules = LANG_RULES.get(lang, [])
-    return apply_rules(text, rules)
-
-def _mark_mixed(text: str) -> str:
-    """
-    Apply Tamil sandhi rules only to Tamil spans; leave non-Tamil spans as-is.
-    This ensures English/Tanglish chunks don't get Tamil-specific boundaries.
-    """
-    chunks = RE_WORD_OR_SPACE_OR_PUNC.findall(text)
-    out_parts = []
-    for ch in chunks:
-        if RE_TAMIL.search(ch):
-            out_parts.append(sandhi_mark(ch, "ta"))
-        else:
-            # English/Latin/digits/punct/spaces -> no sandhi rules
-            out_parts.append(sandhi_mark(ch, "en"))  # pass-through
-    return "".join(out_parts)
-
-def sandhi_split(text: str, lang="ta") -> List[Tuple[str, Tuple[int,int]]]:
-    """
-    Returns [(token, (start,end))] splitting on BOUND after applying rules.
-    Keeps offsets relative to the *post-rule* string.
-    - lang="ta" -> Tamil rules
-    - lang="en" -> pass-through
-    - lang="mix" -> per-span Tamil-only marking
-    """
-    if lang.lower() in ("mix", "code-mix", "codemix", "cmix"):
-        marked = _mark_mixed(text)
-    else:
-        marked = sandhi_mark(text, lang)
-
-    parts = marked.split(BOUND)
-    tokens = []
-    cursor = 0
-    for part in parts:
-        for w in re.findall(r"\S+|\s+", part):
-            tokens.append((w, (cursor, cursor+len(w))))
-            cursor += len(w)
-    return tokens
-
-def remove_boundaries(text: str) -> str:
-    return text.replace(BOUND, "")
-
-from typing import Set  # add to your existing typing import line
-
 # ============================================================
 # FAST PATH — no string rewriting; offsets are always exact
 # into the original `text`. Replaces sandhi_mark + _mark_mixed
@@ -307,11 +237,8 @@ class SandhiPreTokenizer:
     split text into tokens while preserving the original text.
     """
     def pre_tokenize(self, pretok: PreTokenizedString) -> None:
-        def split_on_sandhi(noramlized: NormalizedString) -> List[Tuple[str, Tuple[int, int]]]:
-            text = str(noramlized)
+        def split_on_sandhi(i: int, normalized: NormalizedString) -> List[NormalizedString]:
+            text = str(normalized)
             chunks = sandhi_split(text, lang="ta")
-            pieces = []
-            for _, (start, end) in chunks:
-                pieces.append((noramlized[start:end], (start, end)))
-            return pieces
+            return [normalized[start:end] for _, (start, end) in chunks]
         pretok.split(split_on_sandhi)
