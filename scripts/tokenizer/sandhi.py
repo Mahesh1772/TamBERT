@@ -10,7 +10,6 @@ from tokenizers import PreTokenizedString, NormalizedString
 @dataclass
 class Rule:
     pattern: re.Pattern
-    repl: str
 
 TA_RULES = [
 
@@ -20,27 +19,26 @@ TA_RULES = [
 # ---------------------------------------------------------------------
 
 # அ + அ/ஆ … (common a+a ā-type joins)
-Rule(re.compile(r"(அ)\s*(அ|ஆ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(அ)\s*(அ|ஆ)")),
 # அ + இ/ஈ  → often /e/-like outcome; mark join
-Rule(re.compile(r"(அ)\s*(இ|ஈ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(அ)\s*(இ|ஈ)")),
 # அ + உ/ஊ → often /o/-like; mark join
-Rule(re.compile(r"(அ)\s*(உ|ஊ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(அ)\s*(உ|ஊ)")),
 # அ + எ/ஏ, ஒ/ஓ, ஐ/ஔ
-Rule(re.compile(r"(அ)\s*(எ|ஏ)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(அ)\s*(ஒ|ஓ)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(அ)\s*(ஐ|ஔ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(அ)\s*(எ|ஏ)")),
+Rule(re.compile(r"(அ)\s*(ஒ|ஓ)")),
+Rule(re.compile(r"(அ)\s*(ஐ|ஔ)")),
 
 # இ/ஈ + உயிர் (potential y-glide contexts)
-Rule(re.compile(r"(இ|ஈ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)"), r"\1" + BOUND + r"\2"),
-
+Rule(re.compile(r"(இ|ஈ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)")),
 # உ/ஊ + உயிர் (potential v-glide contexts)
-Rule(re.compile(r"(உ|ஊ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(உ|ஊ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)")),
 
 # எ/ஏ, ஒ/ஓ + உயிர் (diphthong-like joins; keep safe)
-Rule(re.compile(r"(எ|ஏ|ஒ|ஓ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(எ|ஏ|ஒ|ஓ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)")),
 
 # ஐ/ஔ + உயிர் (mark joins after diphthongs)
-Rule(re.compile(r"(ஐ|ஔ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ஐ|ஔ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)")),
 
 # ---------------------------------------------------------------------
 # B) Glide insertion cues (இடைஎழுத்து தோன்றுதல்) — y/வ positions
@@ -49,18 +47,18 @@ Rule(re.compile(r"(ஐ|ஔ)\s*(அ|ஆ|இ|ஈ|உ|ஊ|எ|ஏ|ஒ|ஓ|ஐ|ஔ)"
 # ---------------------------------------------------------------------
 
 # Dependent sign i/ī + அ… (ி/ீ before அ… → y-glide in speech)
-Rule(re.compile(r"(ி|ீ)\s*(அ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ி|ீ)\s*(அ)")),
 # Dependent sign u/ū + அ… (ு/ூ before அ… → v-glide)
-Rule(re.compile(r"(ு|ூ)\s*(அ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ு|ூ)\s*(அ)")),
 
 # Word ends with இ/ஈ, next starts with அ… (independent vowels)
-Rule(re.compile(r"(இ|ஈ)\s*(அ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(இ|ஈ)\s*(அ)")),
 # Word ends with உ/ஊ, next starts with அ…
-Rule(re.compile(r"(உ|ஊ)\s*(அ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(உ|ஊ)\s*(அ)")),
 
 # Cases with y/v already present — keep a boundary before the glide
-Rule(re.compile(r"(ி|ீ)\s*(ய)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ு|ூ)\s*(வ)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ி|ீ)\s*(ய)")),
+Rule(re.compile(r"(ு|ூ)\s*(வ)")),
 
 # ---------------------------------------------------------------------
 # C) Nasal + stop assimilations (மெய் சந்தி)
@@ -68,82 +66,80 @@ Rule(re.compile(r"(ு|ூ)\s*(வ)"), r"\1" + BOUND + r"\2"),
 # ---------------------------------------------------------------------
 
 # ங் before க/க-series
-Rule(re.compile(r"(ங்)\s*(க)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ங்)\s*(க)")),
 # ஞ் before ச/ச-series
-Rule(re.compile(r"(ஞ்)\s*(ச)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ஞ்)\s*(ச)")),
 # ண் before ட/ட-series
-Rule(re.compile(r"(ண்)\s*(ட)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ண்)\s*(ட)")),
 # ந் before த/த-series
-Rule(re.compile(r"(ந்)\s*(த)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ந்)\s*(த)")),
 # ம் before ப/ப-series
-Rule(re.compile(r"(ம்)\s*(ப)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ம்)\s*(ப)")),
 # ன் before ந
-Rule(re.compile(r"(ன்)\s*(ந)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ன்)\s*(ந)")),
 
 # Generic nasal + stop cluster (safety net)
-Rule(re.compile(r"(ங்|ஞ்|ண்|ந்|ம்|ன்)\s*(க|ச|ட|த|ப|ற)"), r"\1" + BOUND + r"\2"),
-
+Rule(re.compile(r"(ங்|ஞ்|ண்|ந்|ம்|ன்)\s*(க|ச|ட|த|ப|ற)")),
 # ---------------------------------------------------------------------
 # D) Gemination / doubling across boundary (compounds)
 # ---------------------------------------------------------------------
 
-Rule(re.compile(r"(க்)\s*(க)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ச்)\s*(ச)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ட்)\s*(ட)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(த்)\s*(த)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ப்)\s*(ப)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(க்)\s*(க)")),
+Rule(re.compile(r"(ச்)\s*(ச)")),
+Rule(re.compile(r"(ட்)\s*(ட)")),
+Rule(re.compile(r"(த்)\s*(த)")),
+Rule(re.compile(r"(ப்)\s*(ப)")),
 
 # Liquids/approximants doubling across boundary
-Rule(re.compile(r"(ய்)\s*(ய)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(வ்)\s*(வ)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ல்)\s*(ல)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ள்)\s*(ள)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ர்)\s*(ர)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ற்)\s*(ற)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ன்)\s*(ன)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ய்)\s*(ய)")),
+Rule(re.compile(r"(வ்)\s*(வ)")),
+Rule(re.compile(r"(ல்)\s*(ல)")),
+Rule(re.compile(r"(ள்)\s*(ள)")),
+Rule(re.compile(r"(ர்)\s*(ர)")),
+Rule(re.compile(r"(ற்)\s*(ற)")),
+Rule(re.compile(r"(ன்)\s*(ன)")),
 
 # ---------------------------------------------------------------------
 # E) திரிதல் (mutation) cues — mark classic change environments
 # ---------------------------------------------------------------------
 
 # ல் + ச
-Rule(re.compile(r"(ல்)\s*(ச)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ல்)\s*(ச)")),
 # ர்/ற் + ர
-Rule(re.compile(r"(ர்)\s*(ர)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ற்)\s*(ர)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ர்)\s*(ர)")),
+Rule(re.compile(r"(ற்)\s*(ர)")),
 # Dental↔retroflex interplay triggers
-Rule(re.compile(r"(ன்|ண்)\s*(ட|த)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(ன்|ண்)\s*(ட|த)")),
 
 # ---------------------------------------------------------------------
 # F) கெடுதல் (final consonant loss before vowel) — mark likely joins
 # ---------------------------------------------------------------------
 
-Rule(re.compile(r"(க்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ச்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ட்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(த்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ப்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"(க்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])")),
+Rule(re.compile(r"(ச்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])")),
+Rule(re.compile(r"(ட்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])")),
+Rule(re.compile(r"(த்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])")),
+Rule(re.compile(r"(ப்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])")),
 
 # Final sonorants often reduce/elide before suffix vowels
-Rule(re.compile(r"(ம்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ய்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ல்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ள்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"(ர்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])"), r"\1" + BOUND + r"\2"),
-
+Rule(re.compile(r"(ம்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])")),
+Rule(re.compile(r"(ய்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])")),
+Rule(re.compile(r"(ல்)\s*([அஆஇஈஉஊஎஏஒஓஐஔ])")),
+Rule(re.compile(r"(ள்)\s*([அஆஇஈஉஊஎஏ ஒஓஐ ஔ])")),
+Rule(re.compile(r"(ர்)\s*([அஆஇஈ உ ஊ எ ஏ ஒ ஓ ஐ ஔ])")),
 # ---------------------------------------------------------------------
 # G) Case-suffix & postposition joins (வேற்றுமைச் சந்தி) — frequent cues
 # ---------------------------------------------------------------------
 
-Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(ஐ)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*((உ|க்)கு)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(ஆல்|னால்)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(இல்|அல்)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(இடம்|உடன்|முன்|பின்)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(ஐ)")),
+Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*((உ|க்)கு)")),
+Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(ஆல்|னால்)")),
+Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(இல்|அல்)")),
+Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(இடம்| உடன்|முன்|பின்)")),
 
 # Noun + plural/collective markers
-Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(கள்)"), r"\1" + BOUND + r"\2"),
-Rule(re.compile(r"([அஆஇஈஉஊஎஏஒஓஐஔ])\s*(வர்|வர்கள்)"), r"\1" + BOUND + r"\2"),
+Rule(re.compile(r"([அஆஇஈ உ ஊ எ ஏ ஒ ஓ ஐ ஔ])\s*(கள்)")),
+Rule(re.compile(r"([அஆஇஈ உ ஊ எ ஏ ஒ ஓ ஐ ஔ])\s*(வர்|வர்கள்)")),
 
 # ---------------------------------------------------------------------
 # H) Verbal participle and auxiliary joins (எச்சம்/வினைச் சந்தி)
