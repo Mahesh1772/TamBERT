@@ -4,8 +4,9 @@ SAMPLE_TEXT = "அம்மா வீட்டில் இருக்கிற
 
 # --- BERT-style constants ---
 UNK_TOKEN = '[UNK]'
-VOCAB_SIZE = 5
-BPE_SPECIAL_TOKENS = ['[UNK]', '[CLS]', '[SEP]', '[PAD]', '[MASK]']
+UNUSED_TOKENS = [f'[unused{i}]' for i in range(1000)]
+VOCAB_SIZE = 31000 + len(UNUSED_TOKENS)  # 31k is the BERT base vocab size, plus 1000 unused tokens 
+BPE_SPECIAL_TOKENS = ['[UNK]', '[CLS]', '[SEP]', '[PAD]', '[MASK]'] + UNUSED_TOKENS
 
 def calculate_fertility(tokenizer,
                         file_path: Path,
