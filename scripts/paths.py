@@ -23,6 +23,8 @@ class Paths:
     merged_deduped : Path = field(init=False)
     train : Path = field(init=False)
     test : Path = field(init=False)
+    train_sandhi_marked: Path = field(init=False)
+    test_sandhi_marked: Path = field(init=False)
 
     def __post_init__(self):
         # Ensure that all directories exist
@@ -57,6 +59,8 @@ class Paths:
         
         self.train = self.corpus / 'train.txt'
         self.test = self.corpus / 'test.txt'
+        self.train_sandhi_marked = self.corpus / 'train_sandhi_marked.txt'
+        self.test_sandhi_marked = self.corpus / 'test_sandhi_marked.txt'
         
         self.hygiene_summary = self.metrics / 'hygiene_metrics_summary.csv'
         self.corpus_metrics_summary = self.metrics / 'corpus_metrics_summary.csv'

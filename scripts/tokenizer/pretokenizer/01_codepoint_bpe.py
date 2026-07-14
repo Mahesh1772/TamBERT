@@ -1,5 +1,5 @@
 from time import time, process_time
-from tokenizers import Tokenizer, normalizers, pre_tokenizers, decoders, processors
+from tokenizers import Regex, Tokenizer, normalizers, pre_tokenizers, decoders, processors
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 import sys, json
@@ -14,8 +14,12 @@ paths = Paths()
 # Define the tokenizer
 codepoint_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
 
-# Normalizer
-codepoint_bpe.normalizer = normalizers.NFC()
+# Normalizer, as previously defined in the `TamBert Data Analysis Notebook` file
+codepoint_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
+                                                 normalizers.Replace(Regex(r",+"), ","),
+                                                 normalizers.Replace(Regex(r"\.+"), "."),
+                                                 normalizers.Replace(Regex(r"'+"), "'"),
+                                                 normalizers.Replace(Regex(r"-+"), "-")])
 
 # Pre-tokenizer — Metaspace: bakes a word-boundary marker (▁)
 # directly into token text, so decoding survives arbitrary subword splitting

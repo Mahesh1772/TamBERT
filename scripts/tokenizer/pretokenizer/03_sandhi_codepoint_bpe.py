@@ -1,5 +1,5 @@
 from time import time, process_time
-from tokenizers import Tokenizer, normalizers, pre_tokenizers, decoders, processors
+from tokenizers import Regex, Tokenizer, normalizers, pre_tokenizers, decoders, processors
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 import sys, json
@@ -17,7 +17,11 @@ paths = Paths()
 sandhi_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
 
 # Normalizer
-sandhi_bpe.normalizer = normalizers.NFC()
+sandhi_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
+                                                 normalizers.Replace(Regex(r",+"), ","),
+                                                 normalizers.Replace(Regex(r"\.+"), "."),
+                                                 normalizers.Replace(Regex(r"'+"), "'"),
+                                                 normalizers.Replace(Regex(r"-+"), "-")])
 
 # Pre-tokenizer — Metaspace: bakes a word-boundary marker (▁)
 # directly into token text, so decoding survives arbitrary subword splitting
@@ -34,16 +38,17 @@ sandhi_bpe_trainer = BpeTrainer(special_tokens=BPE_SPECIAL_TOKENS, vocab_size=VO
 
 # Train
 start_cpu_time, start_wall_time = process_time(), time()
-sandhi_bpe.train([str(paths.train)], trainer=sandhi_bpe_trainer)
+sandhi_bpe.train([str(paths.train_sandhi_marked)], trainer=sandhi_bpe_trainer)
 end_cpu_time, end_wall_time = process_time(), time()
 cpu_time_taken = end_cpu_time - start_cpu_time
 wall_time_taken = end_wall_time - start_wall_time
 
 # Decoder — must match the pre-tokenizer's marker scheme
-sandhi_bpe.decoder = decoders.Metaspace()
+sandhi_bpe.decoder = decoders.Sequence([decoders.Metaspace(),
+                                        decoders.Replace(Regex("⟂"), "")])
 
 # Evaluate
-train_metrics = calculate_tokenizer_metrics(sandhi_bpe, paths.test)
+train_metrics = calculate_tokenizer_metrics(sandhi_bpe, paths.test_sandhi_marked)
 
 # Post-processor — BERT [CLS]/[SEP] structure, set after training since it
 # needs real token IDs from the trained vocab
