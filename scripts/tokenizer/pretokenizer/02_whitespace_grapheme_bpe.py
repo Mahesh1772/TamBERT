@@ -3,21 +3,20 @@ from tokenizers import Regex, Tokenizer, normalizers, pre_tokenizers, decoders, 
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 import sys, json
+import regex as re
 from pathlib import Path
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import SAMPLE_TEXT, calculate_tokenizer_metrics, UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS
-from sandhi import SandhiPreTokenizer
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 
 paths = Paths()
 
 # Define the tokenizer
-sandhi_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
+whitespace_grapheme_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
 
-# Normalizer
-sandhi_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
+# Normalizer, as previously defined in the `TamBert Data Analysis Notebook` file
+whitespace_grapheme_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
                                                  normalizers.Replace(Regex(r",+"), ","),
                                                  normalizers.Replace(Regex(r"\.+"), "."),
                                                  normalizers.Replace(Regex(r"'+"), "'"),
@@ -25,59 +24,73 @@ sandhi_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
 
 # Pre-tokenizer — Metaspace: bakes a word-boundary marker (▁)
 # directly into token text, so decoding survives arbitrary subword splitting
-sandhi_bpe.pre_tokenizer = pre_tokenizers.Metaspace()
+whitespace_grapheme_bpe.pre_tokenizer = pre_tokenizers.Metaspace()
+
+# Get a starting pont for the distinct graphemes in the training data, excluding whitespace
+print('Getting a starting point for the distinct graphemes in the training data, excluding whitespace...')
+grapheme_re = re.compile(r"\X")
+distinct_graphemes = set()
+with open(paths.train, encoding='utf-8') as f:
+    for line in f:
+        distinct_graphemes.update(grapheme_re.findall(line))
+distinct_graphemes.discard(' ')
+distinct_graphemes = sorted(distinct_graphemes)
+print(f"Found {len(distinct_graphemes)} distinct graphemes in the training data, excluding whitespace.")
 
 print("Pre-tokenization process:")
-print(sandhi_bpe.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
+print(whitespace_grapheme_bpe.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
 
 # Trainer
-sandhi_bpe_trainer = BpeTrainer(special_tokens=BPE_SPECIAL_TOKENS, vocab_size=VOCAB_SIZE)
+whitespace_grapheme_bpe_trainer = BpeTrainer(
+    special_tokens=BPE_SPECIAL_TOKENS,
+    vocab_size=VOCAB_SIZE,
+    initial_alphabet=distinct_graphemes,
+)
 
 # Train
 start_cpu_time, start_wall_time = process_time(), time()
-sandhi_bpe.train([str(paths.train_sandhi_marked)], trainer=sandhi_bpe_trainer)
+whitespace_grapheme_bpe.train([str(paths.train)], trainer=whitespace_grapheme_bpe_trainer)
 end_cpu_time, end_wall_time = process_time(), time()
 cpu_time_taken = end_cpu_time - start_cpu_time
 wall_time_taken = end_wall_time - start_wall_time
 
 # Decoder — must match the pre-tokenizer's marker scheme
-sandhi_bpe.decoder = decoders.Sequence([decoders.Metaspace(),
-                                        decoders.Replace(Regex("⟂"), "")])
+whitespace_grapheme_bpe.decoder = decoders.Metaspace()
 
 # Evaluate
-train_metrics = calculate_tokenizer_metrics(sandhi_bpe, paths.test_sandhi_marked)
+train_metrics = calculate_tokenizer_metrics(whitespace_grapheme_bpe, paths.test)
 
 # Post-processor — BERT [CLS]/[SEP] structure, set after training since it
 # needs real token IDs from the trained vocab
-sandhi_bpe.post_processor = processors.TemplateProcessing(
+whitespace_grapheme_bpe.post_processor = processors.TemplateProcessing(
     single="[CLS] $A [SEP]",
     pair="[CLS] $A [SEP] $B:1 [SEP]:1",
     special_tokens=[
-        ("[CLS]", sandhi_bpe.token_to_id("[CLS]")),
-        ("[SEP]", sandhi_bpe.token_to_id("[SEP]")),
+        ("[CLS]", whitespace_grapheme_bpe.token_to_id("[CLS]")),
+        ("[SEP]", whitespace_grapheme_bpe.token_to_id("[SEP]")),
     ],
 )
 
 # Report
 print(f"Training completed in {cpu_time_taken:.2f}s (CPU) / {wall_time_taken:.2f}s (wall).")
-print(f"Vocabulary size: {len(sandhi_bpe.get_vocab())}")
+print(f"Vocabulary size: {len(whitespace_grapheme_bpe.get_vocab())}")
 print(f"Fertility on test data: {train_metrics['fertility']:.4f}")
 print(f"OOV rate on test data: {train_metrics['oov_rate']:.4f}")
 
-encoded = sandhi_bpe.encode(SAMPLE_TEXT)
+encoded = whitespace_grapheme_bpe.encode(SAMPLE_TEXT)
 print(f"Encoding (with [CLS]/[SEP]): {encoded.tokens}")
-print(f"Decoded: {sandhi_bpe.decode(encoded.ids)!r}")
+print(f"Decoded: {whitespace_grapheme_bpe.decode(encoded.ids)!r}")
 
 # Save
-out_dir = paths.tokenizer_name_generator('sandhi_bpe_metaspace')
-sandhi_bpe.save(str(out_dir / 'tokenizer.json'))
+out_dir = paths.tokenizer_name_generator('metaspace_grapheme_bpe')
+whitespace_grapheme_bpe.save(str(out_dir / 'tokenizer.json'))
 
 
 with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
     json.dump({
         'fertility': train_metrics['fertility'],
         'oov_rate': train_metrics['oov_rate'],
-        'vocab_size': len(sandhi_bpe.get_vocab()),
+        'vocab_size': len(whitespace_grapheme_bpe.get_vocab()),
         'wall_time_seconds': wall_time_taken,
     }, f, indent=2)
 
