@@ -5,33 +5,7 @@ from tqdm import tqdm
 import hashlib
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
-from utils import create_directories, reservoir_sample, TAMIL_CHARACTERS
-
-def setup_environment():
-    """
-    Sets up the environment by creating necessary directories and downloading the Tamil Wikipedia dump.
-    """
-    # Setup the Paths for data storage
-    data, _, cleaned_data = create_directories()
-
-    # Setup paths for Merged text file and the train/test files
-    merged_text_file = cleaned_data / 'merged.txt'
-    deduped_file = cleaned_data / 'merged_deduped.txt'
-    dropped_duplicates_file = cleaned_data / 'dropped_duplicates.txt'
-    
-    if merged_text_file.exists():
-        print(f"Merged text file already exists at {merged_text_file}. It will be overwritten.")
-        merged_text_file.unlink()  # Remove the existing file to avoid appending to it
-    
-    # Setup Corpus directory for storing the train/test files
-    corpus_dir = data / 'corpus'
-    corpus_dir.mkdir(exist_ok=True, parents=True)
-    
-    train_file = corpus_dir / 'train.txt'
-    test_file = corpus_dir / 'test.txt'
-
-    return merged_text_file, train_file, test_file, cleaned_data, deduped_file, dropped_duplicates_file
-
+from utils import reservoir_sample, TAMIL_CHARACTERS
 
 def merge_text_files(input_dir:Path, output_file:Path):
     """
