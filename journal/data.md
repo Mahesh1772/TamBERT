@@ -1,98 +1,252 @@
-# TamilBERT v0.1 — Data 
+# TamilBERT v0.1 — Data
 
-Finding data for training a monolingual BERT model in Tamil was quite a challange on itself. Rich works representing clean language usage encompassing the intricasies of the language are sarce. Most prevelant data online are from tweets, news articles and wikipedia. These while containing sizeable text for training are often tainted with alot of opinions and mixed language words, poor translation, local dialects and inconsistent grammer.
+Building a monolingual Tamil corpus turned out to be a project on its own.
 
-The sources chosen for training the v1.0 of the tokenizer is as follows:
-1. (Project Madurai)[https://www.projectmadurai.org/pmworks.html] - A digital archive of old tamil literature work
-2. CC100 - A web crawl of many news articles, and tweets scrapped off the web
-3. Tamil Wiki - Every tamil wikipedia page online
+Tamil text is available online, but not always in a form that is directly useful for pretraining. A lot of it comes mixed with formatting artifacts, duplicated web content, English fragments, metadata, headers, page numbers, and other noise that a model does not need to learn. So the goal here was not just to gather *more* text, but to build a corpus that is reasonably large, readable, and defensible.
 
-Apart from this others sources of data can be found in the link here. For the future versions we plan to integrate X and Y into the training for more data representative of the language and of good quality.
+For this version, three sources were used:
+
+1. [Project Madurai](https://www.projectmadurai.org/pmworks.html) — public-domain Tamil literature.
+2. [CC-100 Tamil](https://data.statmt.org/cc-100/ta.txt.xz) — Tamil text extracted from Common Crawl.
+3. [Tamil Wikipedia](https://dumps.wikimedia.org/tawiki/latest/tawiki-latest-pages-articles.xml.bz2) — Tamil encyclopedia-style writing from Wikipedia dumps.
+
+These three sources were chosen because together they cover very different styles of Tamil:
+
+- Project Madurai contributes older and more literary language.
+- Tamil Wikipedia contributes formal, edited, informational prose.
+- CC-100 contributes scale, even if it is noisier than the other two.
+
+**Why a mix?** A corpus made from only one source can become stylistically narrow. A corpus made from only web crawl data can become large but repetitive and messy. This pipeline tries to keep the strengths of each source while reducing the kinds of noise that would hurt downstream training.
+
+---
+
+## Source overview
+
+Before getting into the scripts, it helps to know what each source is doing in the corpus.
+
+| Source | What it adds | Main risk |
+|---|---|---|
+| Project Madurai | Literary and classical Tamil, often clean and meaningful line by line | Headers, numbering, very short poetic lines, edition artifacts |
+| Tamil Wikipedia | Formal modern Tamil, broad topical coverage | XML markup, templates, links, tables, collapsed formatting |
+| CC-100 Tamil | Massive scale and broad web coverage | Heavy duplication, metadata leakage, mixed formatting |
+
+For the final corpus each one needs different extraction and cleanup logic before it becomes useful.
 
 ---
 
 ## Project Madurai
 
-This source is a website maintained where all sources of poems and other works are available as pdfs and html pages. We use the main page to source the content from all the .html pages.
+Project Madurai is a digital archive of Tamil literary works. Many texts are available as HTML pages, so the approach here is to collect the relevant HTML links and extract the visible body text from each page.
 
-1. Collect all the links in the literature page of the site.
-2. Go to each page, use `BeautifulSoup` to extract the text alone from the body. We extract and store this as a list. For each line in this a cleaning process is used.
-    - strip any links in the text body
-    - strip any emails (the site had email option on every page to report bugs)
-    - strip english alphabets from site headers and numbers which have page number, phone number, etc.
-    - Extract out tamil letters + punctuaion `[!,.-]` + digits
-    - check if each line has atleast one tamil alphabet, only move to next step if it does
-    - return cleaned list
-3. Subsequently write each page to `project_madurai_extracted.txt` file 
+### What the script does
 
-### Decision made
-- There are some lines with orphaned digits, for instance the number subceding sangam literature in Aathichudi. These are left in intentionally and not fully remomved as in some lines they do have importance as to their ordering.
-- Only the text from the `BeautifulSoup.body` (body tag) is extracted here. This was decided after sampling a few random .html pages manually and printing their respective texts and in the small tested sample from the 1300+ links, all of them had the most important literature part of the body. Hence any and all information and text in all others parts of the page are igonred intentionally. 
-- The `invalid_line_limit` a parameter explained in the later stgages of the pipeline was set to 2 (meaning all lines with lesser than 2 words will not end up in the final corpus) based on this data source as some works have only 2 words per line by design.
+1. Visit the main Project Madurai works page.
+2. Collect links that point to UTF-8 HTML texts.
+3. Open each page and read only the HTML `body`.
+4. Split the body text into lines.
+5. Clean each line before writing it out.
+
+The cleaning step removes obvious web artifacts while keeping the Tamil content:
+
+- Remove URLs.
+- Remove email addresses.
+- Remove HTML entities.
+- Extract Tamil words from the line.
+- Keep the line only if it still contains Tamil text.
+
+The output is written to a source file for downstream processing.
+
+### Why this approach
+
+Only the page body is used because that is where the actual text lives in the sampled Project Madurai pages. Menus, navigation, and other page regions are not useful training data, so they are intentionally ignored.
+
+Some lines still contain digits or numbering. That was not treated as an automatic defect. In literary sources, numbers can mark verse order, section order, or structural sequence, so removing every digit blindly would throw away useful information along with noise.
+
+Another important decision came later in the pipeline: lines with fewer than 2 tokens are treated as invalid. That sounds strict at first, but it was chosen carefully because some literary lines are genuinely short by design. Setting the minimum too high would hurt Project Madurai more than the other sources.
 
 ---
 
 ## Tamil Wikipedia
 
-This source is an aggregate of web scrapped wikipedia pages specifically in tamil. It contains the text along with tables, formating, font info and links as well as section headings.
+Tamil Wikipedia is valuable because it contains large amounts of formal, modern Tamil across many topics. But raw Wikipedia dumps are not ready-to-train text. They contain XML structure, wiki markup, templates, links, headings, tables, and other formatting that must be stripped away.
 
-1. Extract the compressed file line by line and write to 2 different files depending on line length.
-2. Using a XML parser `lxml` extract out only the pages from the file and not all the other metadata as they are assumed to be in english and not relevant for training. For every page as we read it the following is done
-    - find the text portion of the page using specifc handles used in `lxml`. If no text found, make it null
-    - strip template formatting block, html tags, links, comments, special characters, links, urls, formattings, tables, sections headings
-    - Split page text into smaller chunks to filter out unwated chars and only retain tamil alphabets+punctuation+digits
-    - check if each line has atleast one tamil alphabet, only move to next step if it does
-    - check the length of the currently existing line read from file, store it to different files according to length.
-    - clear memory after writing to file as this will expand to be a 12GB file.
-3. Data written to `tamil_wiki_extracted.txt` and `tamil_wiki_long_lines_extracted.txt` file 
+### What the script does
 
-### Decision made
-- The idea to split by pages only occured after analysis described in `data_stats.md`. Few pages had huge chuncks of text upto 70k. On review these happened to be broken table and header formatting with very little text. To confirm the text amount, the ration of text to symbols was run and found out only lesser than 0.30 of text was actually meaningful within the lines contained distorted formatting rather than. As the % of garbage lines depended on the number of chunks in a line, the splitting of extracted data was facilitated.
-- The magic number of 2500 was chosen after some analysis described on `data_stats.md` that both other sources only ever have lines upto 1.7k chunks. So with a 50% margin we round up the 'big line length' to 2.5k.
-- The minimum needed character density of 30% to make the line meaningful was derived from the long lines extracted during de-compression and was set as the standard to all other files before forming the training/testing corpus. 
+1. Download the Tamil Wikipedia dump.
+2. Parse it page by page using `lxml`.
+3. Keep only the main article namespace.
+4. Read the revision text for each page.
+5. Clean wiki-specific formatting.
+6. Split cleaned page text into smaller chunks.
+7. Write normal lines to one file and very long lines to a separate file.
 
----
+The cleaning step includes:
 
-## CC100 Tamil
+- Removing template blocks.
+- Removing reference-like markup.
+- Removing HTML tags and comments.
+- Resolving wiki links to their display text.
+- Removing bare URLs.
+- Removing formatting markers such as bold and italics.
+- Removing section heading markup while keeping the heading text itself.
 
-The CC100 (Common Crawl 100) dataset is a massive, publicly available collection of monolingual text data used to pretrain natural language processing (NLP) models.
+After cleaning, the page text is split into smaller chunks before Tamil word extraction. This matters because Wikipedia pages can collapse a lot of unrelated formatting into one giant piece of text if they are handled too coarsely.
 
-1. Extract the compressed file line by line and write to `tamil_cc100_extracted.txt`.
-2. Using `lzma` to extract out lines from a compressed .xz file sequentially.
-    - decode line in 'utf-8' format
-    - strip links, urls, latin words
-    - Split page text into smaller chunks to filter out unwated chars and only retain tamil alphabets+punctuation+digits
-    - check if each line has atleast one tamil alphabet, only move to next step if it does
+### Why the long-line split exists
 
-### Decision made
-- The data in this source did not have deep nested formatting like xml to deal with, but it did have alot of dates and ill formatted numbers and obsecure translations like ki.mi for kilo metre among others. This was then used to refine the line stripping process to leave those kind of . inside and remove the recurring ones and ones that occur between non alphabets.
-- As this is a webcrawl dataset, many of it's contents are duplicate. This was revealed in checks found in `data_stats.md`. As a result a whole deduplication step was added into the pipeline which reduced the useable unique lines by half of what it was before merging. As this was the biggest contributing data source with 68M lines any deduplication only makes sense after adding this to the mix.
+This was one of the most important decisions in the pipeline.
 
----
+During analysis, some Wikipedia lines were found to be extremely long. Those were not “rich long paragraphs” in the usual sense. Many of them were broken tables, formatting residue, or other flattened wiki structures that survived the first cleaning pass.
 
-## Clean Data
+To deal with this, lines longer than 2500 tokens were separated into a dedicated file for inspection. That threshold was not meant to be mathematically perfect. It was a practical cutoff chosen because the other sources stayed well below that range, and these giant Wikipedia lines clearly behaved differently.
 
-This is an intermediate step before the merginng of data and splitting it into train and test data. This was added after conducting data analysis on all the sources and the merged source to eliminate lines with only a single token. 
-
-This single token in some cases ends up being an orphaned punctuation, a single word (which is often a header or a sub-heading translated form english and is sasme across pages such as `about us`) or even numbers (dates of publishing etc). 
-
-These stand alone lines do not add any type of significance to the dataset but instead cause the pullution of it. Recurring headers and dates with no percieved value inflate the counts of a word occuring and hence add unnecessary and invaluable tokens to the vocabulary. 
-
-A healthy threshold of 0.3 is used to decide if the line is legitemate or not. This is again due to the fact that some literature can only contain 2 tokens in a line.
-
-All data sources are checked line by line and each of it is split into 2 files, with lines above and below the threshold. The 'above' files are the ones used in all downstream tasks including training the tokenizer and MLM fine-tuning. The 'below' files are to be inspected manually and for finding patterns in data which can make us take more informed decision and maybe change some decision rules as to what to include/ exclude in the following iterations.
+Later analysis showed that most of those long lines had very poor real-content density, which confirmed that the long-line split was catching structural noise rather than valuable prose.
 
 ---
 
-## Corpus Merging and Train/Test split
+## CC-100 Tamil
 
-1. Every 'above' file from the previous step are taken and merged into a single file, while merging: if any line does not have a single tamil alphabet that is discarded.
-2. Iterate through lines of the merged file and use `hashlib` to hash each line. This is to find out if a line is unique. This step ensures all deplucate lines (predominantly from cc100) get filtered out and only one occurance of them stays. The deduped file is saved separately and the duplicate file is stored just for analysis like mentioned earlier.
-3. On this deduped file, assign each line to either a test or a train set. We do this by selecting a train/test split then making a list of string for each and using `random.shuffle` to randomize assignment of lines to each set.
-4. Write lines from the deduped file to `train.txt` and `test.txt` following the random assignment.
+CC-100 Tamil is the biggest source in the pipeline by far. Its main value is scale. Without it, the corpus would be much smaller. But web-crawled text comes with trade-offs: duplication, inconsistent formatting, short boilerplate lines, and fragments that are clearly not meant as clean language data.
+
+### What the script does
+
+1. Download the Tamil CC-100 file.
+2. Read it line by line from the compressed archive.
+3. Decode each line as UTF-8.
+4. Remove URLs and HTML entities.
+5. Extract Tamil words from each line.
+6. Keep only lines that still contain Tamil content.
+
+Compared with Wikipedia, CC-100 does not need XML parsing or wiki-markup cleanup. The bigger issue here is not nested structure but repetition and web noise.
+
+### Why CC-100 is still worth using
+
+Even after cleaning, CC-100 remains the noisiest source in the project. But it is also the source that provides the overwhelming majority of the corpus volume.
+
+That means the right question is not “is CC-100 perfect?” It is “can enough value be kept while the worst problems are controlled?” The later QA passes showed that the answer was yes, but only after adding merge-time deduplication and a content-ratio filter.
 
 ---
 
-## Sanity Checks
+## Content-ratio filtering
 
-Final step is to run a bunch of checks which test each file in the corpus and the relevant data sources. This was one of the steps used to build a robust pipeline. This is a final addendum to verify all of the scrits ran smoothly and the source is ready for downstream tasks. More information on this is provided in the `data_stats.md`.
+A basic extraction pass is not enough on its own. Some lines can survive cleaning and still be low-value because they contain too little actual Tamil content relative to symbols, numbering, or formatting debris.
+
+To catch this, an extra filtering stage was added based on `real_content_ratio`.
+
+### What this metric means
+
+For each line:
+
+1. Split the line into tokens.
+2. Count how many tokens contain at least one Tamil character.
+3. Divide that count by the total number of tokens.
+
+This produces a ratio between 0 and 1.
+
+A line with a high ratio is mostly Tamil text. A line with a low ratio is often dominated by symbols, formatting fragments, metadata, broken tables, or mixed-content junk.
+
+### Threshold used
+
+The threshold was set to `0.3`.
+
+This means a line is kept if at least 30% of its tokens contain Tamil characters. Otherwise it is sent to a separate “below threshold” file for audit instead of being used downstream.
+
+This is intentionally conservative. A stricter threshold would remove more noise, but it would also risk deleting valid lines from literary sources where numbering and formatting are part of the text layout. A looser threshold would let too much structural junk through, especially from Wikipedia long lines.
+
+### Why this was added
+
+This filter was added after inspecting unusually long Wikipedia lines and finding that many of them were not actually meaningful text. Once that issue became visible, the same rule was applied to all sources so that the pipeline stayed consistent.
+
+The “below threshold” files are not thrown away. They are kept for inspection because they are useful for understanding what kinds of lines are being excluded and whether the rule should change in later versions.
+
+---
+
+## Cleaning before merge
+
+At this point, each source has gone through source-specific extraction and then through the shared content-ratio filter.
+
+That produces two versions of each source:
+
+- an `above_threshold` file, used for downstream work;
+- a `below_threshold` file, kept for audit and manual review.
+
+Only the `above_threshold` files move forward into merging.
+
+This separation is useful for two reasons:
+
+1. It keeps the training path simple and consistent.
+2. It preserves evidence for later debugging instead of silently deleting questionable lines.
+
+That second point matters more than it seems. Corpus work becomes very hard to trust when every discarded line disappears without explanation.
+
+---
+
+## Merge and deduplication
+
+Once the cleaned source files are ready, they are merged into a single corpus file.
+
+### What happens during merge
+
+1. Read all `above_threshold` text files.
+2. Merge them into one file.
+3. Skip any line that does not contain at least one Tamil character.
+
+This produces a single merged corpus made only from the cleaned, above-threshold inputs.
+
+### Why deduplication happens after merge
+
+Deduplication is done on the merged corpus, not on each source separately.
+
+That decision matters because duplicates do not exist only *within* a source. The same sentence or line can appear in more than one source, especially when a web-crawled source overlaps with public web content derived from Wikipedia or other published text.
+
+The deduplication step uses an exact hash of each line and keeps only the first occurrence. Any later repeats are written to a duplicate file for inspection.
+
+Doing this after merge solves two problems at once:
+
+- it removes duplicates inside a source;
+- it also removes duplicates across different sources.
+
+This was especially important because CC-100 contributed a very large amount of repeated content. Without a post-merge dedup step, the final corpus would have been much larger on paper but much less diverse in practice.
+
+---
+
+## Train and test split
+
+After deduplication, the corpus is split into train and test files.
+
+### What the script does
+
+1. Count the number of lines in the deduplicated corpus.
+2. Assign 90% of lines to train and 10% to test.
+3. Shuffle the assignment list using a fixed random seed.
+4. Write each line into either `train.txt` or `test.txt`.
+
+The fixed seed is important because it makes the split reproducible. If the pipeline is re-run later, the logic remains stable and comparable.
+
+The split is done after cleaning and deduplication so that both train and test are drawn from the same final-quality pool rather than from noisy intermediate files.
+
+---
+
+## Why some imperfect lines are still kept
+
+Some imperfect lines were intentionally kept:
+
+- Short literary lines with real meaning.
+- Numbered lines where the numbering helps preserve structure.
+- Informal punctuation that does not corrupt the text itself.
+
+Some imperfect lines were intentionally dropped:
+
+- Symbol-heavy lines with too little Tamil content.
+- Duplicate lines that only inflate repetition.
+- Very short invalid lines that are mostly headers, digits, or formatting leftovers.
+
+This is the general rule behind the whole pipeline: aim for text that is useful for language modeling not for perfection.
+
+---
+
+## Final note
+
+The main lesson from this stage of the project is that collecting data is only the first half of the work. The second half is making decisions that are simple enough to defend, consistent enough to automate, and cautious enough not to destroy valid Tamil text by over-cleaning.
+
+That is why this pipeline keeps audit files, separates source-specific cleaning from shared filtering, and uses metrics to justify changes instead of changing rules blindly. The corpus is not “perfect,” but it is traceable, explainable, and much better suited for downstream tokenizer training and masked-language-model pretraining than the raw source dumps.
