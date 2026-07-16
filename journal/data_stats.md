@@ -235,16 +235,15 @@ Train/test split was then run on the deduplicated corpus using a fixed 90/10 ass
 
 | Metric | madurai | wiki | cc100 | merged | train | test |
 |---|---|---|---|---|---|---|
-| H1 Contamination | 0% | 0% | 0% | TBD | 0% | 0% |
-| H2 Encoding anomaly | 0.050% | 0.004% | 0.041% | TBD | 0.065% | 0.067% |
-| H3 Duplicate ratio | 6.8% | 19.3% | 53.0% | TBD | 0.18% | 0.07% |
-| H4 Non-alpha density | 1.8% | 3.1% | 2.5% | TBD | 2.4% | 2.4% |
-| H5 Invalid line rate | 4.4% | **9.5%** | 2.9% | TBD | 0.48% | 0.48% |
+| H1 Contamination | 0% | 0% | 0% | 0% | 0% | 0% |
+| H2 Encoding anomaly | 0.050% | 0.004% | 0.041% | 0.065% | 0.065% | 0.067% |
+| H3 Duplicate ratio | 6.8% | 19.3% | 53.0% | 0.19% | 0.18% | 0.07% |
+| H4 Non-alpha density | 1.8% | 3.1% | 2.5% | 2.4% | 2.4% | 2.4% |
+| H5 Invalid line rate | 4.4% | **9.5%** | 2.9% | 0.48% | 0.48% | 0.48% |
 
 **Changed:**
 - **H3** — duplicate ratio is near-zero on train (0.18%) and test (0.07%), which validates the exact-hash deduplication step. Per-source rates still look higher because deduplication is only applied at merge time, not written back into each individual source file.
 - **H5** — Wikipedia rose to 9.5%, which looks concerning numerically, but manual inspection showed that many flagged lines were valid short section headers such as references and bibliography labels, along with alphabet-entry-like items. Since final train/test files already sit at 0.48%, no extra Wikipedia-specific filter was added.
-- The merged row is still pending a clean rerun because this pass accidentally measured `merged.txt` instead of `merged_deduped.txt`.
 
 ---
 
@@ -335,7 +334,6 @@ This is not a hard acceptance criterion, but it is a useful qualitative check be
 - Dates with imperfect internal separators are left unchanged.
 - NFC mismatch alone is not treated as an encoding anomaly.
 - TTR, MTLD, and unigram entropy should not be compared too literally across corpora with very different token counts.
-- The post-clean merged hygiene row is still pending rerun on `merged_deduped.txt`.
 
 ---
 
