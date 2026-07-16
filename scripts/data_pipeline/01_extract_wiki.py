@@ -3,8 +3,7 @@ import sys
 from lxml import etree
 from pathlib import Path
 from tqdm import tqdm
-from urllib.request import urlretrieve
-from utils import extract_tamil_words, reservoir_sample
+from utils import download_file, extract_tamil_words, reservoir_sample
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 
@@ -16,7 +15,7 @@ def setup_environment(wiki_dump_url='https://dumps.wikimedia.org/tawiki/latest/t
     
     if not wiki_dump.exists():
         print(f"Downloading Wikipedia dump from {wiki_dump_url}...")
-        urlretrieve(wiki_dump_url, wiki_dump)
+        download_file(wiki_dump_url, wiki_dump)
         print(f"Download completed. File saved as {wiki_dump}")
     else:
         print(f"Wikipedia dump already exists at {wiki_dump}. Skipping download.")

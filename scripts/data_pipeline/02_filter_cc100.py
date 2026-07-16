@@ -2,10 +2,9 @@ import re, lzma
 from pathlib import Path
 import sys
 from tqdm import tqdm
-from urllib.request import urlretrieve
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
-from utils import extract_tamil_words, reservoir_sample
+from utils import download_file, extract_tamil_words, reservoir_sample
 
 def setup_environment(cc_url='https://data.statmt.org/cc-100/ta.txt.xz', cc100_file=None):
     """
@@ -16,7 +15,7 @@ def setup_environment(cc_url='https://data.statmt.org/cc-100/ta.txt.xz', cc100_f
         print(f"CC-100 file already exists at {cc100_file}. Skipping download.")
     else:
         print(f"Downloading CC-100: Monolingual Dataset data from {cc_url}...")
-        urlretrieve(cc_url, cc100_file)
+        download_file(cc_url, cc100_file)
         print(f"Download completed. File saved as {cc100_file}")
 
 

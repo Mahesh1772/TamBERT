@@ -1,5 +1,6 @@
 import random, re, regex
 import sys
+import requests
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
@@ -54,3 +55,19 @@ def reservoir_sample(input_file, k=5, encoding='utf-8'):
                 if j < k:
                     reservoir[j] = line.strip()
     return reservoir
+
+def download_file(url, destination, timeout=60):
+    """
+    Download a file with a browser-like user agent so Wikimedia and similar
+    sites do not reject the request with a 403.
+    """
+    headers = {
+        'User-Agent': 'TamBERT data pipeline/1.0 (https://github.com/Mahesh1772/TamBERT)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }
+    with requests.get(url, stream=True, headers=headers, timeout=timeout) as response:
+        response.raise_for_status()
+        with open(destination, 'wb') as file_handle:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if chunk:
+                    file_handle.write(chunk)
