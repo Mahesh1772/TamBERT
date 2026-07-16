@@ -1,6 +1,6 @@
 # Notebook 2: TamBERT Tokenizer
 
-## Vocabulary size decision = 32k (with unused tokens) [30+2]
+## Vocabulary size decision = 32k (with unused tokens) [31+1]
 
 The size of mapping from code point -> token IDs.
 
@@ -15,7 +15,7 @@ Special tokens in vocabulary:
 2. `Fill in the Middle` tokens from [research paper](https://arxiv.org/pdf/2207.14255)
 3. `<|end-of-prompt|>`
 
-As Since embedding_table.shape = [vocab_size, embed_dim], and the final layer of a llm (transformer) would be a linear layer (fully connected layer) which will predict the logits for each token ID in the vocabulary (predict the next word/sub-word to generate next, has a `vocab_size` neurons. So increase in vocab_size will increase the size of the table and the nn.Dense() layer for logit production.
+As Since embedding_table.shape = [vocab_size, embed_dim], and the final layer of a llm (transformer) would be a linear layer (fully connected layer) which will predict the logits for each token ID in the vocabulary (predict the next word/sub-word) to generate next, has a `vocab_size` neurons. So increase in vocab_size will increase the size of the table and the nn.Dense() layer for logit production.
 
 ## Tokenizer method [BPE (Byte Piece Encoder)]
 - Successively mint new tokens from the most commonly occuring pair of elements

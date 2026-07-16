@@ -205,9 +205,9 @@ def main():
   corpus_metrics_results = []
   sent_len_dist_results = {}
   
-  # Calculate corpus hygiene metrics for individual files
+  # Calculate corpus hygiene and profiling metrics for individual files
   for path in paths.metrics_targets():
-    print(f"Calculating hygiene metrics for {path.name}...")
+    print(f"Calculating metrics for {path.name}...")
     hygiene, corpus = calculate_corpus_metrics(path, metrics_data=paths.metrics, hygiene_metrics=hygiene_metrics)
     hygiene['source'] = path.name
     corpus['source'] = path.name
