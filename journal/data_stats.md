@@ -20,9 +20,9 @@ This section is here so the later tables are easier to read. The goal is to make
 
 This measures how many disallowed characters appear relative to all characters seen in the file.
 
-\[
+$$
 \text{Contamination Rate} = \frac{\text{disallowed characters}}{\text{total characters}} \times 100
-\]
+$$
 
 A high value suggests the corpus contains too many unwanted characters, symbols, or script leakage.
 
@@ -30,9 +30,9 @@ A high value suggests the corpus contains too many unwanted characters, symbols,
 
 This measures how many lines contain true encoding anomalies, such as a replacement character or an orphaned combining mark.
 
-\[
+$$
 \text{Encoding Anomaly Rate} = \frac{\text{anomalous lines}}{\text{total lines}} \times 100
-\]
+$$
 
 This is intentionally stricter than simple normalization mismatch. NFC mismatch alone is **not** treated as corruption.
 
@@ -40,9 +40,9 @@ This is intentionally stricter than simple normalization mismatch. NFC mismatch 
 
 This measures how many lines are duplicates of earlier lines in the same file.
 
-\[
+$$
 \text{Duplicate Ratio} = \frac{\text{duplicate lines}}{\text{total lines}} \times 100
-\]
+$$
 
 In the script this is estimated using a scalable Bloom filter during hygiene checks, then later verified more strictly with exact line hashing during merge-time deduplication.
 
@@ -50,9 +50,9 @@ In the script this is estimated using a scalable Bloom filter during hygiene che
 
 This measures how much of the corpus is made up of non-alphabetic characters.
 
-\[
+$$
 \text{Non-Alpha Density} = \frac{\text{non-alphabetic characters}}{\text{total characters}} \times 100
-\]
+$$
 
 This helps catch markup residue, punctuation-heavy junk, or formatting artifacts, though literary text can naturally score a little higher here.
 
@@ -60,9 +60,9 @@ This helps catch markup residue, punctuation-heavy junk, or formatting artifacts
 
 A line is considered invalid in this pipeline if it contains fewer than 2 tokens.
 
-\[
+$$
 \text{Invalid Line Rate} = \frac{\text{lines with token count} < 2}{\text{total lines}} \times 100
-\]
+$$
 
 This is a practical heuristic, not a universal truth. It catches many useless fragments, but it can also flag valid short poetic lines.
 
@@ -78,9 +78,9 @@ No special formula here. This is simply the total number of whitespace-split tok
 
 For each line, compute:
 
-\[
+$$
 \text{Sentence Length} = \text{number of whitespace tokens in the line}
-\]
+$$
 
 This is useful for spotting line dumps, broken segmentation, or suspiciously long structural fragments.
 
@@ -88,9 +88,9 @@ This is useful for spotting line dumps, broken segmentation, or suspiciously lon
 
 TTR measures how many unique word types exist relative to the total number of tokens.
 
-\[
+$$
 TTR = \frac{|V|}{N}
-\]
+$$
 
 where \(|V|\) is the number of unique word types and \(N\) is the total token count.
 
@@ -102,9 +102,9 @@ MTLD is a lexical-diversity metric designed to be less sensitive to corpus lengt
 
 It works by scanning through the text and counting a “factor” whenever the running TTR falls below a threshold, here \(\theta = 0.72\).
 
-\[
+$$
 MTLD = \frac{\text{total tokens}}{\text{number of factors}}
-\]
+$$
 
 Higher MTLD generally means more sustained lexical variety across the text.
 
@@ -112,15 +112,15 @@ Higher MTLD generally means more sustained lexical variety across the text.
 
 This measures how evenly the vocabulary is distributed.
 
-\[
+$$
 H = -\sum_{w \in V} p(w)\log_2 p(w)
-\]
+$$
 
 where
 
-\[
+$$
 p(w) = \frac{f(w)}{N}
-\]
+$$
 
 A higher entropy means token frequencies are spread out more evenly. A lower entropy suggests a smaller set of words dominates the corpus, which often happens with repetitive boilerplate or templated text.
 
@@ -132,9 +132,9 @@ A higher entropy means token frequencies are spread out more evenly. A lower ent
 
 This was introduced after inspection of long Wikipedia lines showed that some of them were mostly structural debris rather than useful Tamil text.
 
-\[
+$$
 \text{Real Content Ratio} = \frac{\text{tokens containing at least one Tamil character}}{\text{total tokens in the line}}
-\]
+$$
 
 A value near 1 means the line is mostly Tamil content. A low value usually means the line is dominated by markup residue, symbols, numbering, or mixed-content junk.
 
@@ -183,9 +183,9 @@ Wikipedia paragraph and sentence-boundary splitting reduced the number of suspic
 
 To separate these from real content, a new metric was added: **real content ratio**.
 
-\[
+$$
 \text{Real Content Ratio} = \frac{\text{tokens containing at least one Tamil character}}{\text{total tokens}}
-\]
+$$
 
 The threshold was set to **0.3**.
 
@@ -274,15 +274,15 @@ This was not run yet, but it would be useful when deciding whether a **new** sou
 
 KL divergence is defined as:
 
-\[
+$$
 D_{KL}(P \parallel Q) = \sum_{w} P(w)\log\frac{P(w)}{Q(w)}
-\]
+$$
 
 Since KL is asymmetric and can be unstable when probabilities are missing, the more practical version here is Jensen–Shannon divergence:
 
-\[
+$$
 D_{JS}(P \parallel Q) = \frac{1}{2}D_{KL}(P \parallel M) + \frac{1}{2}D_{KL}(Q \parallel M), \quad M = \frac{P + Q}{2}
-\]
+$$
 
 Interpretation:
 
@@ -295,9 +295,9 @@ This would be especially useful before adding future corpora, because it gives a
 
 This was also not run yet.
 
-\[
+$$
 \text{Bigram Overlap}(A, B) = \frac{|Bigrams(A) \cap Bigrams(B)|}{|Bigrams(A) \cup Bigrams(B)|}
-\]
+$$
 
 This is just the Jaccard overlap over bigram sets. High overlap would suggest that a new source adds little new co-occurrence information even if it increases raw token count.
 
@@ -307,9 +307,9 @@ This is a simpler and more interpretable companion to JS divergence when evaluat
 
 This was not run yet because it needs a trained masked language model.
 
-\[
+$$
 PPL = \exp\left(-\frac{1}{N}\sum_{i=1}^{N}\log P(w_i \mid \text{context})\right)
-\]
+$$
 
 High pseudo-perplexity on a given source would suggest that the model has not learned that domain well. This is useful later for checking whether literary, encyclopedic, and noisy web text are all being modeled equally well.
 
