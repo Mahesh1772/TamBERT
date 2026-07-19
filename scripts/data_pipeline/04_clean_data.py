@@ -57,7 +57,7 @@ def main():
     
     for above_file_path in above_file_paths:
         print(f"\nSample lines from {above_file_path.name}:")
-        sampled_test_lines = reservoir_sample(above_file_path, sample_size=5)
+        sampled_test_lines = reservoir_sample(above_file_path, k=5)
         for line in sampled_test_lines:
             print(line)
         

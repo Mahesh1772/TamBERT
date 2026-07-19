@@ -116,10 +116,10 @@ def main():
     paths = Paths()
     
     # Parse the Project Madurai HTML links and extract Tamil text
-    parse_project_madurai(html_links, paths.tamil_madurai)
+    parse_project_madurai(html_links, paths.project_madurai)
     
     # Perform reservoir sampling to get a few random lines from the extracted text
-    sampled_lines = reservoir_sample(paths.tamil_madurai, k=5)
+    sampled_lines = reservoir_sample(paths.project_madurai, k=5)
     
     print("Sampled lines from the extracted Tamil text:\n ")
     for line in sampled_lines:
