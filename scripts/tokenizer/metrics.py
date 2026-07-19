@@ -1,12 +1,5 @@
 from pathlib import Path
-
-SAMPLE_TEXT = "அம்மா வீட்டில் இருக்கிறார்!!! நான் பள்ளிக்கு, 12. போகிறேன்."
-
-# --- BERT-style constants ---
-UNK_TOKEN = '[UNK]'
-UNUSED_TOKENS = [f'[unused{i}]' for i in range(1000)] # 1000 unused tokens for BERT-style special tokens
-VOCAB_SIZE = 31000 + len(UNUSED_TOKENS)  # 31k is the BERT base vocab size, plus 1000 unused tokens 
-BPE_SPECIAL_TOKENS = ['[UNK]', '[CLS]', '[SEP]', '[PAD]', '[MASK]'] + UNUSED_TOKENS
+from constants import UNK_TOKEN
 
 def calculate_fertility(tokenizer,
                         file_path: Path,
