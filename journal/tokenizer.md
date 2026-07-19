@@ -17,3 +17,11 @@ A tokenizer is considered elite when long words and common jargon are represente
 `VOCAB_SIZE` - The total number of rows in the tokenizer, where each row represents a mapping from a subword -> ID.
 
 Some rows are reserved for special token/words and are called `special tokens`. These have special meaning and are blocked out from the start to ensure they do not get replaced. Hence the effective size would be `VOCAB_SIZE` - `special tokens`.
+
+Some of the special tokens used in the project include:
+- unk: Unknown token, this is the ID assigned to all the words the tokenizer encounters which are not in its vocabulary. For example, a Tamil trained monolingual tokenizer would use `unk` to represent characters from Spanish or English.
+- cls: Token added in the post-processing stage. Usually depicts the start of a sequence of text (specific to BERT but used on all models for consistency).
+- sep: Token added in the post-processing stage. Usually depicts the sperator between segments of a sequence of text (specific to BERT but used on all models for consistency). 
+- pad:
+- mask:
+- unusedN: Reserved and unused slots which would be occupied during future downstream tasks like fine-tuning.
