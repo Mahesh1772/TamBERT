@@ -81,7 +81,7 @@ print(f"Encoding on placeholder text (with [CLS]/[SEP]): {encoded.tokens}")
 print(f"Decoded: {grapheme_unigram.decode(encoded.ids)!r}")
 
 # Save
-out_dir = paths.tokenizer_name_generator('unigram_grapheme_metaspace')
+out_dir = paths.tokenizer_name_generator('02_metaspace_grapheme_unigram')
 grapheme_unigram.save(str(out_dir / 'tokenizer.json'))
 
 # Relabel the saved vocab from placeholders back to real Tamil grapheme

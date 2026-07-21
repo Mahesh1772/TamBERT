@@ -67,7 +67,7 @@ print(f"Encoding (with [CLS]/[SEP]): {encoded.tokens}")
 print(f"Decoded: {codepoint_bpe.decode(encoded.ids)!r}")
 
 # Save
-out_dir = paths.tokenizer_name_generator('codepoint_bpe_metaspace')
+out_dir = paths.tokenizer_name_generator('01_metaspace_codepoint_bpe')
 codepoint_bpe.save(str(out_dir / 'tokenizer.json'))
 
 

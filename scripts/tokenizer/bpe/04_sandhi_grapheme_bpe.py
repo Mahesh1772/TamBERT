@@ -80,7 +80,7 @@ print(f"Encoding (with [CLS]/[SEP]): {encoded.tokens}")
 print(f"Decoded: {sandhi_grapheme_bpe.decode(encoded.ids)!r}")
 
 # Save
-out_dir = paths.tokenizer_name_generator('sandhi_grapheme_bpe')
+out_dir = paths.tokenizer_name_generator('04_sandhi_grapheme_bpe')
 sandhi_grapheme_bpe.save(str(out_dir / 'tokenizer.json'))
 
 
