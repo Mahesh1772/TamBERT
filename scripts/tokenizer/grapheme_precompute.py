@@ -40,7 +40,7 @@ multi_graphemes = find_multi_codepoint_graphemes(paths.train, paths.test)
 print(f"Found {len(multi_graphemes)} distinct multi-codepoint grapheme clusters.")
 
 placeholder_map = build_placeholder_map(multi_graphemes)
-map_path = paths.tokenizer_dir / "grapheme_placeholder_map.json"
+map_path = paths.grapheme_placeholder_map
 save_map(placeholder_map, map_path)
 print(f"Saved placeholder map ({len(placeholder_map)} entries) to {map_path}")
 

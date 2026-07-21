@@ -8,13 +8,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
 from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
-from grapheme_remap import load_map, substitute_line
+from grapheme_remap import load_map, substitute_line, restore_text
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 
 paths = Paths()
 
 placeholder_map = load_map(paths.grapheme_placeholder_map)
+placeholder_to_grapheme = {v: k for k, v in placeholder_map.items()}
 
 # Define the tokenizer
 whitespace_grapheme_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
@@ -70,9 +71,12 @@ print(f"Vocabulary size: {len(whitespace_grapheme_bpe.get_vocab())}")
 print(f"Fertility on test data: {train_metrics['fertility']:.4f}")
 print(f"OOV rate on test data: {train_metrics['oov_rate']:.4f}")
 
-encoded = whitespace_grapheme_bpe.encode(SAMPLE_TEXT)
-print(f"Encoding (with [CLS]/[SEP]): {encoded.tokens}")
-print(f"Decoded: {whitespace_grapheme_bpe.decode(encoded.ids)!r}")
+sample_substituted = substitute_line(SAMPLE_TEXT, placeholder_map)
+encoded = whitespace_grapheme_bpe.encode(sample_substituted)
+print(f"Encoding on placeholder text (with [CLS]/[SEP]): {encoded.tokens}")
+
+decoded_placeholder = whitespace_grapheme_bpe.decode(encoded.ids)
+print(f"Decoded (restored to raw Tamil): {restore_text(decoded_placeholder, placeholder_to_grapheme)!r}")
 
 # Save
 out_dir = paths.tokenizer_name_generator('02_metaspace_grapheme_bpe')
