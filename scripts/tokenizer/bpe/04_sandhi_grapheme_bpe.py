@@ -46,7 +46,7 @@ sandhi_grapheme_bpe_trainer = BpeTrainer(
 
 # Train
 start_cpu_time, start_wall_time = process_time(), time()
-sandhi_grapheme_bpe.train([str(paths.train_sandhi_marked)], trainer=sandhi_grapheme_bpe_trainer)
+sandhi_grapheme_bpe.train([str(paths.train_sandhi_grapheme_marked)], trainer=sandhi_grapheme_bpe_trainer)
 end_cpu_time, end_wall_time = process_time(), time()
 cpu_time_taken = end_cpu_time - start_cpu_time
 wall_time_taken = end_wall_time - start_wall_time
@@ -56,7 +56,7 @@ sandhi_grapheme_bpe.decoder = decoders.Sequence([decoders.Metaspace(),
                                         decoders.Replace(Regex("⟂"), "")])
 
 # Evaluate
-train_metrics = calculate_tokenizer_metrics(sandhi_grapheme_bpe, paths.test_sandhi_marked)
+train_metrics = calculate_tokenizer_metrics(sandhi_grapheme_bpe, paths.test_sandhi_grapheme_marked)
 
 # Post-processor — BERT [CLS]/[SEP] structure, set after training since it
 # needs real token IDs from the trained vocab
