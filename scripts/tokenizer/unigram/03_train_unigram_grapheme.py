@@ -5,11 +5,8 @@ from tokenizers.trainers import UnigramTrainer
 import sys, json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-# NOTE: switched this back to `metrics`, matching the working BPE files —
-# the original `from constants import ...` module wasn't in the documented
-# folder structure and would likely 404 on import. Move these back to
-# `constants` if that module does exist and this was intentional.
-from metrics import SAMPLE_TEXT, calculate_tokenizer_metrics, UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS
+from metrics import calculate_tokenizer_metrics
+from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
 from grapheme_remap import load_map, restore_vocab_in_place, substitute_line
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths

@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from grapheme_remap import (
+from scripts.tokenizer.grapheme_remap import (
     find_multi_codepoint_graphemes,
     build_placeholder_map,
     save_map,

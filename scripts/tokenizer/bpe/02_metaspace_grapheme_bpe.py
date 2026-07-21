@@ -6,11 +6,15 @@ import sys, json
 import regex as re
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from metrics import SAMPLE_TEXT, calculate_tokenizer_metrics, UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS
+from metrics import calculate_tokenizer_metrics
+from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
+from grapheme_remap import load_map, substitute_line
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 
 paths = Paths()
+
+placeholder_map = load_map(paths.grapheme_placeholder_map)
 
 # Define the tokenizer
 whitespace_grapheme_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
@@ -26,30 +30,19 @@ whitespace_grapheme_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
 # directly into token text, so decoding survives arbitrary subword splitting
 whitespace_grapheme_bpe.pre_tokenizer = pre_tokenizers.Metaspace()
 
-# Get a starting pont for the distinct graphemes in the training data, excluding whitespace
-print('Getting a starting point for the distinct graphemes in the training data, excluding whitespace...')
-grapheme_re = re.compile(r"\X")
-distinct_graphemes = set()
-with open(paths.train, encoding='utf-8') as f:
-    for line in f:
-        distinct_graphemes.update(grapheme_re.findall(line))
-distinct_graphemes.discard(' ')
-distinct_graphemes = sorted(distinct_graphemes)
-print(f"Found {len(distinct_graphemes)} distinct graphemes in the training data, excluding whitespace.")
-
-print("Pre-tokenization process:")
-print(whitespace_grapheme_bpe.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
+print("Pre-tokenization process (on a placeholder-substituted sample):")
+sample_substituted = substitute_line(SAMPLE_TEXT, placeholder_map)
+print(whitespace_grapheme_bpe.pre_tokenizer.pre_tokenize_str(sample_substituted))
 
 # Trainer
 whitespace_grapheme_bpe_trainer = BpeTrainer(
     special_tokens=BPE_SPECIAL_TOKENS,
     vocab_size=VOCAB_SIZE,
-    initial_alphabet=distinct_graphemes,
 )
 
 # Train
 start_cpu_time, start_wall_time = process_time(), time()
-whitespace_grapheme_bpe.train([str(paths.train)], trainer=whitespace_grapheme_bpe_trainer)
+whitespace_grapheme_bpe.train([str(paths.train_grapheme_marked)], trainer=whitespace_grapheme_bpe_trainer)
 end_cpu_time, end_wall_time = process_time(), time()
 cpu_time_taken = end_cpu_time - start_cpu_time
 wall_time_taken = end_wall_time - start_wall_time
@@ -58,7 +51,7 @@ wall_time_taken = end_wall_time - start_wall_time
 whitespace_grapheme_bpe.decoder = decoders.Metaspace()
 
 # Evaluate
-train_metrics = calculate_tokenizer_metrics(whitespace_grapheme_bpe, paths.test)
+train_metrics = calculate_tokenizer_metrics(whitespace_grapheme_bpe, paths.test_grapheme_marked)
 
 # Post-processor — BERT [CLS]/[SEP] structure, set after training since it
 # needs real token IDs from the trained vocab
