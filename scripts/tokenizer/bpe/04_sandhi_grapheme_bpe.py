@@ -9,10 +9,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
 from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
+from grapheme_remap import load_map, substitute_line
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 
 paths = Paths()
+
+placeholder_map = load_map(paths.grapheme_placeholder_map)
 
 # Define the tokenizer
 sandhi_grapheme_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
@@ -28,16 +31,9 @@ sandhi_grapheme_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
 # directly into token text, so decoding survives arbitrary subword splitting
 sandhi_grapheme_bpe.pre_tokenizer = pre_tokenizers.Metaspace()
 
-# Get a starting pont for the distinct graphemes in the training data, excluding whitespace
-print('Getting a starting point for the distinct graphemes in the training data, excluding whitespace...')
-grapheme_re = re.compile(r"\X")
-distinct_graphemes = set()
-with open(paths.train_sandhi_marked, encoding='utf-8') as f:
-    for line in f:
-        distinct_graphemes.update(grapheme_re.findall(line))
-distinct_graphemes.discard(' ')
-distinct_graphemes = sorted(distinct_graphemes)
-print(f"Found {len(distinct_graphemes)} distinct graphemes in the training data, excluding whitespace.")
+print("Pre-tokenization process (on a placeholder-substituted sample):")
+sample_substituted = substitute_line(SAMPLE_TEXT, placeholder_map)
+print(sandhi_grapheme_bpe.pre_tokenizer.pre_tokenize_str(sample_substituted))
 
 print("Pre-tokenization process:")
 print(sandhi_grapheme_bpe.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
@@ -46,7 +42,6 @@ print(sandhi_grapheme_bpe.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
 sandhi_grapheme_bpe_trainer = BpeTrainer(
     special_tokens=BPE_SPECIAL_TOKENS,
     vocab_size=VOCAB_SIZE,
-    initial_alphabet=distinct_graphemes,
 )
 
 # Train
