@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
 from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
 from grapheme_remap import load_map, substitute_line, restore_text
+from sandhi import sandhi_mark_boundaries
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 
@@ -32,12 +33,11 @@ sandhi_grapheme_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
 # directly into token text, so decoding survives arbitrary subword splitting
 sandhi_grapheme_bpe.pre_tokenizer = pre_tokenizers.Metaspace()
 
-print("Pre-tokenization process (on a placeholder-substituted sample):")
-sample_substituted = substitute_line(SAMPLE_TEXT, placeholder_map)
-print(sandhi_grapheme_bpe.pre_tokenizer.pre_tokenize_str(sample_substituted))
+sample_sandhi_marked = sandhi_mark_boundaries(SAMPLE_TEXT, lang="ta")
+sample_substituted = substitute_line(sample_sandhi_marked, placeholder_map)
 
-print("Pre-tokenization process:")
-print(sandhi_grapheme_bpe.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
+print("Pre-tokenization process (on a sandhi-marked, placeholder-substituted sample):")
+print(sandhi_grapheme_bpe.pre_tokenizer.pre_tokenize_str(sample_substituted))
 
 # Trainer
 sandhi_grapheme_bpe_trainer = BpeTrainer(
@@ -76,7 +76,6 @@ print(f"Vocabulary size: {len(sandhi_grapheme_bpe.get_vocab())}")
 print(f"Fertility on test data: {train_metrics['fertility']:.4f}")
 print(f"OOV rate on test data: {train_metrics['oov_rate']:.4f}")
 
-sample_substituted = substitute_line(SAMPLE_TEXT, placeholder_map)
 encoded = sandhi_grapheme_bpe.encode(sample_substituted)
 print(f"Encoding on placeholder text (with [CLS]/[SEP]): {encoded.tokens}")
 

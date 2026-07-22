@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
 from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
+from sandhi import sandhi_mark_boundary
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 
@@ -27,8 +28,9 @@ sandhi_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
 # directly into token text, so decoding survives arbitrary subword splitting
 sandhi_bpe.pre_tokenizer = pre_tokenizers.Metaspace()
 
-print("Pre-tokenization process:")
-print(sandhi_bpe.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
+sample_marked = sandhi_mark_boundaries(SAMPLE_TEXT, lang="ta")
+print("Pre-tokenization process (on a sandhi-marked sample):")
+print(sandhi_bpe.pre_tokenizer.pre_tokenize_str(sample_marked))
 
 # Trainer
 sandhi_bpe_trainer = BpeTrainer(special_tokens=BPE_SPECIAL_TOKENS, vocab_size=VOCAB_SIZE)
@@ -64,7 +66,7 @@ print(f"Vocabulary size: {len(sandhi_bpe.get_vocab())}")
 print(f"Fertility on test data: {train_metrics['fertility']:.4f}")
 print(f"OOV rate on test data: {train_metrics['oov_rate']:.4f}")
 
-encoded = sandhi_bpe.encode(SAMPLE_TEXT)
+encoded = sandhi_bpe.encode(sample_marked)
 print(f"Encoding (with [CLS]/[SEP]): {encoded.tokens}")
 print(f"Decoded: {sandhi_bpe.decode(encoded.ids)!r}")
 

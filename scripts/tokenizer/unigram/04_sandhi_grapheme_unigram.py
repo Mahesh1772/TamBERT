@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
 from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
+from sandhi import sandhi_split
 from grapheme_remap import load_map, restore_vocab_in_place, substitute_line
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
@@ -31,8 +32,10 @@ grapheme_unigram_sandhi.normalizer = normalizers.Sequence([normalizers.NFC(),
 # comes from the placeholder-substituted data, not initial_alphabet.
 grapheme_unigram_sandhi.pre_tokenizer = pre_tokenizers.Metaspace()
 
-print("Pre-tokenization process (on a placeholder-substituted sample):")
-sample_substituted = substitute_line(SAMPLE_TEXT, placeholder_map)
+sample_sandhi_marked = sandhi_mark_boundaries(SAMPLE_TEXT, lang="ta")
+sample_substituted = substitute_line(sample_sandhi_marked, placeholder_map)
+
+print("Pre-tokenization process (on a sandhi-marked, placeholder-substituted sample):")
 print(grapheme_unigram_sandhi.pre_tokenizer.pre_tokenize_str(sample_substituted))
 
 # Trainer — no initial_alphabet
@@ -74,7 +77,9 @@ print(f"OOV rate on test data: {train_metrics['oov_rate']:.4f}")
 
 encoded = grapheme_unigram_sandhi.encode(sample_substituted)
 print(f"Encoding on placeholder text (with [CLS]/[SEP]): {encoded.tokens}")
-print(f"Decoded: {grapheme_unigram_sandhi.decode(encoded.ids)!r}")
+
+decoded_placeholder = grapheme_unigram_sandhi.decode(encoded.ids)
+print(f"Decoded (restored to raw Tamil): {restore_text(decoded_placeholder, placeholder_to_grapheme)!r}")
 
 # Save
 out_dir = paths.tokenizer_name_generator('04_sandhi_grapheme_unigram')
@@ -86,14 +91,13 @@ grapheme_unigram_sandhi.save(str(out_dir / 'tokenizer.json'))
 # that's expected and correct, only the placeholder codepoints get swapped.
 restore_vocab_in_place(out_dir / 'tokenizer.json', placeholder_map)
 
-# Sanity check — reload and confirm it works on raw text. Caveat: this
-# variant was trained on sandhi-marked input, so for a fully faithful
-# check you'd run SAMPLE_TEXT through your sandhi-marking step first
-# (sandhi.py wasn't available here to call directly) — this check only
-# confirms the placeholder relabel itself worked, not the sandhi marking.
+# Sanity check — reload and confirm it works on raw text. Uses the same
+# sandhi_mark_boundaries() output computed earlier for the pre-tokenization
+# print, so this genuinely validates the full pipeline (sandhi-mark ->
+# relabel -> encode raw Tamil), not just the placeholder relabel alone.
 reloaded = Tokenizer.from_file(str(out_dir / 'tokenizer.json'))
-raw_encoded = reloaded.encode(SAMPLE_TEXT)
-print(f"Sanity check — encoding raw (non-sandhi-marked) text after relabelling: {raw_encoded.tokens}")
+raw_encoded = reloaded.encode(sample_sandhi_marked)
+print(f"Sanity check — encoding sandhi-marked raw text after relabelling: {raw_encoded.tokens}")
 
 with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
     json.dump({

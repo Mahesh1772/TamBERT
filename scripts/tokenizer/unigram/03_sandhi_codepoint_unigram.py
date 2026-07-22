@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
 from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
+from sandhi import sandhi_mark_boundaries
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 
@@ -26,8 +27,9 @@ unigram_sandhi.normalizer = normalizers.Sequence([normalizers.NFC(),
 # directly into token text, so decoding survives arbitrary subword splitting
 unigram_sandhi.pre_tokenizer = pre_tokenizers.Metaspace()
 
-print("Pre-tokenization process:")
-print(unigram_sandhi.pre_tokenizer.pre_tokenize_str(SAMPLE_TEXT))
+sample_marked = sandhi_mark_boundaries(SAMPLE_TEXT, lang="ta")
+print("Pre-tokenization process (on a sandhi-marked sample):")
+print(unigram_sandhi.pre_tokenizer.pre_tokenize_str(sample_marked))
 
 # Trainer
 unigram_sandhi_trainer = UnigramTrainer(special_tokens=BPE_SPECIAL_TOKENS,
@@ -65,7 +67,7 @@ print(f"Vocabulary size: {len(unigram_sandhi.get_vocab())}")
 print(f"Fertility on test data: {train_metrics['fertility']:.4f}")
 print(f"OOV rate on test data: {train_metrics['oov_rate']:.4f}")
 
-encoded = unigram_sandhi.encode(SAMPLE_TEXT)
+encoded = unigram_sandhi.encode(sample_marked)
 print(f"Encoding (with [CLS]/[SEP]): {encoded.tokens}")
 print(f"Decoded: {unigram_sandhi.decode(encoded.ids)!r}")
 

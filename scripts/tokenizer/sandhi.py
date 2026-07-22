@@ -225,6 +225,37 @@ def sandhi_split(text: str, lang: str = "ta") -> List[Tuple[str, Tuple[int, int]
             tokens.append((text[start:end], (start, end)))
     return tokens
 
+def sandhi_mark_boundaries(text: str, lang: str = "ta", marker: str = "⟂") -> str:
+    """
+    Insert `marker` ONLY at genuine phonological (sandhi) boundaries —
+    i.e. the same cut points sandhi_split derives from TA_PHONOLOGICAL_RULES.
+    Plain whitespace-only word boundaries are left completely untouched
+    (no marker inserted, whitespace itself unmodified), unlike the old
+    "⟂".join(chunks) approach which stamped a marker at every single cut
+    point sandhi_split produces, whitespace-only ones included.
+
+    Property: text with all `marker` occurrences removed == the original
+    `text`, exactly (marker is pure insertion, nothing else is touched).
+    """
+    lang = lang.lower()
+    if lang in ("en", "english"):
+        return text
+
+    bounds = {b for b in _phonological_boundaries(text, TA_PHONOLOGICAL_RULES)
+              if 0 < b < len(text)}  # drop no-op edges (start/end of string)
+    if not bounds:
+        return text
+
+    pieces: List[str] = []
+    prev = 0
+    for b in sorted(bounds):
+        pieces.append(text[prev:b])
+        pieces.append(marker)
+        prev = b
+    pieces.append(text[prev:])
+    return "".join(pieces)
+
+#NEED TO BE REMOVED: after replacing 03,04 files in each of hte directories.
 class SandhiPreTokenizer:
     """
     A pre-tokenizer that applies Tamil sandhi rules to mark boundaries
