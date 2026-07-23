@@ -1,6 +1,6 @@
 {
-  "fertility": 1.3597613526262742,
-  "oov_rate": 0.0,
+  "fertility": 1.362011839937567,
+  "oov_rate": 0.00015278288826278872,
   "vocab_size": 32000,
-  "wall_time_seconds": 24686.917573928833
+  "wall_time_seconds": 6319.6125066280365
 }
