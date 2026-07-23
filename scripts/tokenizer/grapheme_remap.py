@@ -1,68 +1,22 @@
-"""
-Shared grapheme-cluster remapping module.
-
-WHY THIS EXISTS
-----------------
-The `tokenizers` library's `initial_alphabet` parameter silently truncates
-any multi-character string down to its first character (confirmed in the
-official docs: "If the strings contain more than one character, only the
-first one is kept."). Tamil grapheme clusters are mostly multi-codepoint
-(base consonant + vowel sign + optional virama), so passing them into
-`initial_alphabet` never actually seeds full clusters — it silently
-degrades to seeding individual codepoints, which the trainer would have
-picked up anyway. This is almost certainly the root cause of the
-~1,492-vocab cap seen before.
-
-THE FIX
--------
-Remap each distinct multi-codepoint grapheme cluster in the corpus to a
-single placeholder codepoint (from the Unicode Private Use Area) before
-training. A placeholder is exactly one codepoint, so BPE/Unigram treats
-each grapheme cluster as atomic automatically — merges can combine
-placeholders together (spanning multiple original graphemes), but can
-never land in the middle of one.
-
-Single-codepoint clusters (plain ASCII, isolated Tamil vowels/consonants,
-digits, punctuation, the sandhi marker (Sequence[U+27C2] / whatever glyph
-you use) are left untouched — there's nothing to protect them from, so
-remapping them would just waste placeholder slots.
-
-UNIGRAM-ONLY RELABEL TRICK
----------------------------
-`restore_vocab_in_place` rewrites a saved Unigram tokenizer.json's vocab
-piece strings, swapping placeholders back for real grapheme text. This
-works for Unigram because its decode is a Viterbi search over literal
-substrings of the input against literal vocab pieces, not a fixed
-per-codepoint initial split + ordered merge application. Once relabelled,
-the saved tokenizer works directly on ordinary raw Tamil text — no
-runtime substitution step needed downstream.
-
-This does NOT carry over to BPE. BPE's merge rules are applied starting
-from a fixed initial per-codepoint split of the raw input; relabelling
-the merge rules after training wouldn't make them match a raw-text
-codepoint split anymore. If you want to fix the BPE grapheme variant
-later, that needs the substitution step kept live at both train AND
-inference time (a real, permanent preprocessing step) — don't reuse the
-relabel-after-training trick from this module for BPE.
-"""
 from __future__ import annotations
 import json
 import regex as re
 from pathlib import Path
+from tqdm import tqdm
 
 GRAPHEME_RE = re.compile(r"\X")
 PUA_START = 0xE000
 PUA_END = 0xF8FF  # 6,400 slots in the Private Use Area — comfortably more than Tamil needs
 
 
-def find_multi_codepoint_graphemes(*corpus_paths: Path) -> list[str]:
+def find_multi_codepoint_graphemes(corpus_paths: list[Path], line_counts: list[int]) -> list[str]:
     """Scan one or more corpus files and return the sorted, deduplicated
     list of grapheme clusters that span more than one Unicode codepoint.
     Single-codepoint clusters are excluded on purpose — see module docstring."""
     clusters: set[str] = set()
-    for p in corpus_paths:
+    for p, line_count in zip(corpus_paths, line_counts):
         with open(p, encoding="utf-8") as f:
-            for line in f:
+            for line in tqdm(f, total=line_count, desc=f"Scanning {p.name}", unit="lines"):
                 clusters.update(GRAPHEME_RE.findall(line))
     clusters.discard(" ")
     return sorted(c for c in clusters if len(c) > 1)
@@ -100,9 +54,9 @@ def substitute_line(line: str, grapheme_to_placeholder: dict[str, str]) -> str:
     return "".join(grapheme_to_placeholder.get(g, g) for g in GRAPHEME_RE.findall(line))
 
 
-def substitute_file(src_path: Path, dst_path: Path, grapheme_to_placeholder: dict[str, str]) -> None:
+def substitute_file(src_path: Path, dst_path: Path, grapheme_to_placeholder: dict[str, str], line_count: int) -> None:
     with open(src_path, encoding="utf-8") as fin, open(dst_path, "w", encoding="utf-8") as fout:
-        for line in fin:
+        for line in tqdm(fin, total=line_count, desc=f"Substituting {src_path.name}", unit="lines"):
             fout.write(substitute_line(line, grapheme_to_placeholder))
 
 
