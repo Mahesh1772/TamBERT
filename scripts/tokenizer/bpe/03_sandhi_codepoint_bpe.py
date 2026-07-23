@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
 from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
-from sandhi import sandhi_mark_boundary
+from sandhi import sandhi_mark_boundaries
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 

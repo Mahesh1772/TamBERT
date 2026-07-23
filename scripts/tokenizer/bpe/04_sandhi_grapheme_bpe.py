@@ -3,7 +3,6 @@ from tokenizers import Regex, Tokenizer, normalizers, pre_tokenizers, decoders, 
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 import sys, json
-import regex as re
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
