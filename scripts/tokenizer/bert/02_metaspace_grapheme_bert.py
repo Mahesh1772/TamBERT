@@ -50,7 +50,8 @@ cpu_time_taken = end_cpu_time - start_cpu_time
 wall_time_taken = end_wall_time - start_wall_time
 
 # Decoder — must match the pre-tokenizer's marker scheme
-whitespace_grapheme_bert.decoder = decoders.Metaspace()
+whitespace_grapheme_bert.decoder = decoders.Sequence([decoders.WordPiece(prefix="##", cleanup=True),
+                                        decoders.Metaspace()])
 
 # Evaluate
 train_metrics = calculate_tokenizer_metrics(whitespace_grapheme_bert, paths.test_grapheme_marked)
