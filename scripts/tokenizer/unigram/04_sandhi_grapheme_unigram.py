@@ -7,8 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
 from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
-from sandhi import sandhi_split
-from grapheme_remap import load_map, restore_vocab_in_place, substitute_line
+from sandhi import sandhi_mark_boundaries
+from grapheme_remap import load_map, restore_vocab_in_place, substitute_line, restore_text
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from paths import Paths
 
@@ -17,6 +17,7 @@ paths = Paths()
 # Same shared map as 03 — sandhi marking doesn't change what the grapheme
 # clusters are, just where the ⟂ boundary markers sit between them.
 placeholder_map = load_map(paths.grapheme_placeholder_map)
+placeholder_to_grapheme = {v: k for k, v in placeholder_map.items()}
 
 # Define the tokenizer
 grapheme_unigram_sandhi = Tokenizer(Unigram())
@@ -105,6 +106,16 @@ with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
         'oov_rate': train_metrics['oov_rate'],
         'vocab_size': len(grapheme_unigram_sandhi.get_vocab()),
         'wall_time_seconds': wall_time_taken,
+        'cpu_time_seconds': cpu_time_taken,
+        'sample_text': {
+            'raw': SAMPLE_TEXT,
+            'sandhi_marked': sample_sandhi_marked,
+            'placeholder_substituted': sample_substituted,
+            'encoded_tokens': encoded.tokens,
+            'decoded_placeholder': decoded_placeholder,
+            'decoded_restored': restore_text(decoded_placeholder, placeholder_to_grapheme),
+            'sanity_check_encoded_tokens': raw_encoded.tokens
+        }
     }, f, indent=2)
 
 print(f"Saved to {out_dir}")
