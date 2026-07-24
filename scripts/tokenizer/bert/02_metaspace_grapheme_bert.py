@@ -99,6 +99,6 @@ with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
             'decoded_placeholder': decoded_placeholder,
             'decoded_restored': restore_text(decoded_placeholder, placeholder_to_grapheme)
         }
-    }, f, indent=2)
+    }, f, indent=2, ensure_ascii=False)
 
 print(f"Saved to {out_dir}")

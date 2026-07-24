@@ -89,6 +89,6 @@ with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
             'encoded_tokens': encoded.tokens,
             'decoded': unigram_sandhi.decode(encoded.ids)
         }
-    }, f, indent=2)
+    }, f, indent=2, ensure_ascii=False)
 
 print(f"Saved to {out_dir}")

@@ -114,6 +114,6 @@ with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
             'decoded_restored': restore_text(decoded_placeholder, placeholder_to_grapheme),
             'sanity_check_encoded_tokens': raw_encoded.tokens
         }
-    }, f, indent=2)
+    }, f, indent=2, ensure_ascii=False)
 
 print(f"Saved to {out_dir}")
