@@ -4,8 +4,7 @@ This directly inherits from the original sandhi.py from 'Aagathiyam: Sandhi awar
 import regex as re
 from dataclasses import dataclass
 from typing import List, Tuple
-from typing import Set  # add to your existing typing import line
-from tokenizers import PreTokenizedString, NormalizedString
+from typing import Set 
 
 @dataclass
 class Rule:
@@ -254,18 +253,3 @@ def sandhi_mark_boundaries(text: str, lang: str = "ta", marker: str = "⟂") -> 
         prev = b
     pieces.append(text[prev:])
     return "".join(pieces)
-
-#NEED TO BE REMOVED: after replacing 03,04 files in each of hte directories.
-class SandhiPreTokenizer:
-    """
-    A pre-tokenizer that applies Tamil sandhi rules to mark boundaries
-    between words where phonological changes occur, without actually
-    performing the changes. The marked boundaries can then be used to
-    split text into tokens while preserving the original text.
-    """
-    def pre_tokenize(self, pretok: PreTokenizedString) -> None:
-        def split_on_sandhi(i: int, normalized: NormalizedString) -> List[NormalizedString]:
-            text = str(normalized)
-            chunks = sandhi_split(text, lang="ta")
-            return [normalized[start:end] for _, (start, end) in chunks]
-        pretok.split(split_on_sandhi)

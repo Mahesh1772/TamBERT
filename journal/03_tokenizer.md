@@ -89,14 +89,14 @@ To achieve a good tokenizer we need the most commonly occuring phrases/words to 
 
 In practice, different models may prefer different pre-tokenizers depending on the training corpus and the merge behavior of the subword model. For this project, the experiment is kept intentionally narrow: four pre-tokenizer setups are tested, all using the BPE model, so their effect on the assembled Tamil corpus can be compared directly.
 
-#### What does it do?
+##### What does it do?
 
 Pretokenizer splits the text into smallest atomic units from which the 'merging' responsible for tokenizer vocabulary starts. There are many types available, splitting on white space, puncutaion, byte level, certain character specified, digits, graphemes or on space replaced by some character.
 
 There exists certain preconfigured sequence of pretokenizer actions done in a particular order maybe found imperically or specified in a paper. But to keep the comparisons relatable and meaningful, we stick to easily configurable and understandable pre-tokenizers to decipher each ones effect on the corpus/tokenizer performance.
 
 
-#### Types of Pretokenizers (used in the project)
+##### Types of Pretokenizers (used in the project)
 
 The exhaustive list of pretokenizers would be endless. Most models in modern architecture use a 'sequence' or a combination of different individual ones. Many used in this project are `tokenizer` pre-built versions which run in `Rust` hence are faster and were preferred. 
 
@@ -115,7 +115,7 @@ The broad available ones in the library are:
 | Whitespace         | Splits using the regex \\w+\|[^\\w\\s]+                                                                                             |
 | WhitespaceSplit    | Splits purely on whitespace, like .split()                                                                                          |
 
-### Custom PreTokenizer for Tamil
+#### **Custom PreTokenizer for Tamil**
 
 To impelemt a **sandhi split:** Tamil specific splitting, an approach was followed to build a custom `PreTokenizer` inheriting class. But that was too slow for practicallity as it was a python class and hence all the processing slowed down compared to `Rust`. 
 
@@ -125,3 +125,58 @@ The fix used instead was the following
 3. In the decoder add a additional step to filter out this special char and replace it with nothing (to get back normal text)
 
 This warrants and additional step that was computed by the file - `sandhi_precompute.py`.
+
+#### **What is Sandhi Split**
+
+This is a custom pattern which is used to segment/split the input text so that tamil text can be partitioned correctly into the 'samllest' lingustically alligned character (even if it spans multiple unicode characters).
+
+This module is adopted from [Aagathiyam: Sandhi aware tokenization for Tamil](https://github.com/RoshiniPriya05/Agathiyam-Tamil/blob/main/Agathiyam-%20Sandhi%20aware%20tokenization%20for%20Tamil%20Language/core/sandhi.py) research paper directly.
+
+The module uses well documented and known tamil word/vowel appreance use cases to properly split at the correct character such that downstream tasks can learn tamil morphology properly. The exhaustive list of splits are detailed in the table below.
+
+| Category                                       | Split rule                                                                           | Better representative example   | Boundary marked                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------- | ------------------------------------- |
+| **Vowel + vowel joins (A)**                    | Boundary before the second vowel when two vowels meet across a word boundary         | மலை அது (மலை + அது)             | Before **அ** in அது                   |
+|                                                |                                                                                      | தீ எரிந்தது (தீ + எரிந்தது)     | Before **எ**                          |
+|                                                |                                                                                      | பூ ஒளிர்கிறது (பூ + ஒளிர்கிறது) | Before **ஒ**                          |
+| **Glide insertion cues (B)**                   | Boundary where a ய்/வ் glide would naturally appear between adjacent vowels          | கிளி அது (கிளி + அது → கிளியது) | Between **ி** and **அ**               |
+|                                                |                                                                                      | தெரு அது (தெரு + அது → தெருவது) | Between **உ** and **அ**               |
+|                                                |                                                                                      | நீ அவர் (நீ + அவர் → நீயவர்)    | Between **ஈ** and **அ**               |
+| **Nasal + stop assimilation (C)**              | Boundary between a nasal and its matching stop consonant                             | தங்கை → தங் | கை                | Between **ங்** and **க**              |
+|                                                |                                                                                      | பந்தம் → பந் | தம்              | Between **ந்** and **த**              |
+|                                                |                                                                                      | கம்பம் → கம் | பம்              | Between **ம்** and **ப**              |
+| **Gemination / doubling (D)**                  | Boundary between identical doubled consonants                                        | பக்கம் → பக் | கம்              | Between **க்** and **க**              |
+|                                                |                                                                                      | வெள்ளை → வெள் | ளை              | Between **ள்** and **ள**              |
+|                                                |                                                                                      | அன்னை → அன் | னை                | Between **ன்** and **ன**              |
+| **திரிதல் mutation cues (E)**                  | Boundary at classic consonant mutation environments                                  | கல் சிலை (ல் + ச)               | Between **ல்** and **ச**              |
+|                                                |                                                                                      | பேர் ராஜா (ர் + ர)              | Between **ர்** and **ர**              |
+|                                                |                                                                                      | பொன் தட்டு (ன் + த)             | Between **ன்** and **த**              |
+| **கெடுதல் final-consonant-loss (F)**           | Boundary immediately after a consonant that commonly elides before a following vowel | மரக் கிளை                       | After **க்**                          |
+|                                                |                                                                                      | வரும் அவன்                      | Between **ம்** and **அ**              |
+|                                                |                                                                                      | படித் அவர்                      | Between **த்** and **அ**              |
+| **Case suffix / postposition joins (G)**       | Boundary between a stem and a following case suffix or postposition                  | மரம் ஐ                          | Before **ஐ**                          |
+|                                                |                                                                                      | வீடு க்கு                       | Before **க்கு**                       |
+|                                                |                                                                                      | வீடு இல்                        | Before **இல்**                        |
+|                                                |                                                                                      | அவன் உடன்                       | Before **உடன்**                       |
+| **Verbal participle & auxiliary joins (H)**    | Boundary between a participle and its auxiliary verb                                 | படி இரு                         | Between **படி** and **இரு**           |
+|                                                |                                                                                      | செய்து விடு                     | Between **செய்து** and **விடு**       |
+|                                                |                                                                                      | எடுத்து கொள்                    | Between **எடுத்து** and **கொள்**      |
+| **Numeral + classifier / suffix (I)**          | Boundary between a numeral and a following ordinal or case suffix                    | 10 ஆம்                          | Before **ஆம்**                        |
+|                                                |                                                                                      | 5 ஐ                             | Before **ஐ**                          |
+|                                                |                                                                                      | 12 ஆண்டு                        | Before **ஆண்டு** (ordinal expression) |
+| **Whitespace boundaries (separate mechanism)** | Boundary at every space ↔ non-space transition                                       | அம்மா வீட்டில்                  | அம்மா | ␠ | வீட்டில்                  |
+---
+
+#### **How the boundary-marking works, step by step**
+- The script scans the raw Tamil text using all the regex rules (Sections A–I) — it does not rewrite or change any text at this stage, it only looks for pattern matches.
+- Every time a rule matches, it records just one number: the position right before the second part of the match. This is the "cut point."
+- All these cut points get collected into a set (duplicates removed automatically since it's a set).
+- Cut points sitting at the very start (position 0) or very end of the text are dropped, since marking a boundary there wouldn't do anything.
+- If no cut points remain after that, the original text is returned unchanged — no marker added.
+- If cut points do exist, the text gets sliced at each cut point, one by one, from left to right.
+- Between each slice, the marker symbol ⟂ gets inserted.
+- The final result is: original text, but with ⟂ dropped in at every sandhi boundary — nothing else about the text is touched or reordered.
+- Because ⟂ is only ever inserted (never replacing or deleting anything), removing all the ⟂ symbols afterward gives back the exact original text, with zero information lost.
+- This marked version (original text + ⟂ symbols) is what gets fed into the tokenizer training scripts, so the tokenizer can learn to treat these sandhi points as meaningful split locations.
+
+Above proecess found in `sandhi.py`.
