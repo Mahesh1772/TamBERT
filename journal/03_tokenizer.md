@@ -115,7 +115,16 @@ The broad available ones in the library are:
 | Whitespace         | Splits using the regex \\w+\|[^\\w\\s]+                                                                                             |
 | WhitespaceSplit    | Splits purely on whitespace, like .split()                                                                                          |
 
-#### **Custom PreTokenizer for Tamil**
+---
+> This project experiments with different types of pretokinzer configurations. The 4 experiments are as follows:
+>
+> 1. **Unicode split:** Split text into inidividual unicode characters
+> 2. **Grapheme split:** Split text into graphemes (language based characters which can be more than a single unicode character)
+> 3. **Sandhi split:**  Mark boundaries at points where Tamil phonological (sandhi) rules predict a natural word or morpheme join, without rewriting or altering the underlying text
+> 4. **Sandhi + Grapheme:** Mark boundaries using sandhi rules and split into graphemes to tbe the lowest split level to see how combination of both performs.
+---
+
+### **Custom PreTokenizer for Tamil**
 
 To impelemt a **sandhi split:** Tamil specific splitting, an approach was followed to build a custom `PreTokenizer` inheriting class. But that was too slow for practicallity as it was a python class and hence all the processing slowed down compared to `Rust`. 
 
@@ -180,3 +189,44 @@ The module uses well documented and known tamil word/vowel appreance use cases t
 - This marked version (original text + ⟂ symbols) is what gets fed into the tokenizer training scripts, so the tokenizer can learn to treat these sandhi points as meaningful split locations.
 
 Above proecess found in `sandhi.py`.
+
+### What a "grapheme split file" is, and why the first attempt was silently wrong
+
+A Tamil grapheme cluster — one visual "letter" a reader perceives as a single unit — is often *more than one Unicode codepoint* under the hood: a base consonant plus a dependent vowel sign, sometimes plus a virama. `கா` looks like one character but is two codepoints. The tokenizer, left to its own devices, works at the codepoint level, so nothing stops it from learning a token boundary that falls *inside* a grapheme cluster — semantically meaningless, splits that shouldn't exist.
+
+The first attempt to prevent this: collect every distinct grapheme cluster in the corpus (`regex.findall(r"\X", ...)`) and hand that list to the trainer via `initial_alphabet`, hoping it would seed each cluster as one atomic starting unit.
+
+This failed silently. The `tokenizers` library documents `initial_alphabet` as keeping only the *first character* of any multi-character string passed in — no error, no warning. So instead of seeding `கா` as one atomic 2-codepoint unit, it silently kept just `க` — which the trainer would have picked up on its own anyway, since single codepoints are common. The "grapheme-aware" seeding was a complete no-op, and nothing in the run would have told us that. This is almost certainly the same root cause as the ~1,492-entry vocab cap hit earlier — a hidden truncation, not a crash.
+
+#### How it's actually fixed
+
+`initial_alphabet` can't hold multi-codepoint entries — there's no parameter-level fix. Instead, the fix happens to the *text itself*, before the tokenizer ever sees it:
+
+1. Scan the corpus for every distinct grapheme cluster that spans more than one codepoint.
+2. Assign each one a single placeholder codepoint, pulled from the Unicode Private Use Area (an unused range with no assigned meaning of its own — safe to repurpose).
+3. Rewrite the corpus, swapping every occurrence of a multi-codepoint cluster for its one-codepoint placeholder.
+
+Since a placeholder is exactly one codepoint by construction, the trainer can't split it — atomicity falls out automatically, no special training parameter needed. Crucially, this is different from (and doesn't repeat the mistake of) trying to isolate each grapheme cluster as its own pre-tokenizer split: that approach was floated and rejected separately, because pre-tokenizer boundaries are hard walls the model can never merge across — it would have capped every token at exactly one grapheme cluster, never letting multiple clusters combine into a bigger subword token, which is the entire point of running BPE/Unigram in the first place. The placeholder swap avoids this because it happens at the character level, *before* pre-tokenization — ordinary word-level Metaspace splitting still applies on top, so merging across (now single-codepoint) grapheme boundaries within a word works exactly as it always did.
+
+#### Why we regenerated the sandhi-marked files
+
+Not a re-do of the sandhi marking itself — the existing `train_sandhi_marked` / `test_sandhi_marked` files (from the original sandhi precompute step) are untouched and still correct. What's new is a second, layered precompute pass (`grapheme_precompute.py`) that reads those *already sandhi-marked* files and applies the placeholder swap on top, producing `train_sandhi_grapheme_marked` / `test_sandhi_grapheme_marked`. Two markings stacked on the same text: the sandhi boundary marker (⟂) from before, plus the new grapheme placeholders. The `04_train_unigram_sandhi.py` (sandhi only, no grapheme handling) is unaffected by any of this — it never used `initial_alphabet` in the first place, so there was nothing to fix there.
+
+#### How this affects the metrics
+
+`calculate_fertility` / `calculate_oov_rate` / `calculate_tokenizer_metrics` don't inspect *what* characters make up a line — they call `line.split()` for the word count and `tokenizer.encode(line)` for the token count. Placeholder substitution never touches whitespace, only the multi-codepoint clusters between spaces, so the word count (the fertility denominator) is identical whether you measure on raw text or on the placeholder-substituted version. As long as the tokenizer and the test file being measured are in the *same* representation — both placeholder-form, or both real-text-form, never mixed — the numbers are correct and comparable. That's exactly how the scripts are structured: `train_metrics = calculate_tokenizer_metrics(...)` runs against `paths.test_grapheme_marked` (or the sandhi+grapheme equivalent) while the in-memory tokenizer is still in placeholder form — consistent, before anything gets relabelled. No changes needed to `metrics.py` itself; it was already representation-agnostic.
+
+#### How the decoder stays the same and keeps working
+
+Neither decoder needed to change, and for the same underlying reason in both cases: decoding only cares about the whitespace marker (`▁`) and, for the sandhi variant, the literal `⟂` character — never about what characters make up the rest of a token string.
+
+- `03` (grapheme only): `decoders.Metaspace()`. Its whole job is turning `▁`-marked tokens back into correctly spaced text. It doesn't matter whether a token's characters are placeholder codepoints (during training) or real Tamil text (after relabelling) — the reassembly logic is identical either way.
+- `05` (sandhi + grapheme): `decoders.Sequence([Metaspace(), Replace(Regex("⟂"), "")])`. Same Metaspace reasoning, plus a literal find-and-strip of `⟂`. The sandhi marker is a single codepoint, so it was never a candidate for placeholder substitution (only multi-codepoint clusters get remapped) — it passes through the whole pipeline, training data and relabelled vocab alike, completely unchanged. The strip step keeps working without modification because there's nothing about it that depended on the grapheme fix in the first place.
+
+#### What the new files actually contain
+
+- `grapheme_placeholder_map.json` — the reversible lookup table: each real multi-codepoint grapheme cluster mapped to its assigned placeholder codepoint. This is what makes the whole scheme undoable after training.
+- `train_grapheme_marked` / `test_grapheme_marked` — the plain corpus with every multi-codepoint cluster swapped for its placeholder. Word boundaries, punctuation, digits, and any already-single-codepoint Tamil characters are untouched; only genuine multi-codepoint clusters change. Most fonts will render the placeholders as blank boxes if you open the file directly — expected, since Private Use Area codepoints have no defined glyphs.
+- `train_sandhi_grapheme_marked` / `test_sandhi_grapheme_marked` — the same swap applied on top of the already sandhi-marked files, so both markings coexist in one file for the `05` variant.
+
+None of these are meant to be permanent artifacts of the project — they're training-time intermediates. The final saved tokenizer, after `restore_vocab_in_place` relabels its vocab, is the only piece meant to be used going forward, and it works on ordinary raw Tamil text with no placeholder map required at inference time.

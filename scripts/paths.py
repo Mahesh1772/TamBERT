@@ -101,5 +101,6 @@ class Paths:
         """
         d = self.tokenizer / name
         d.mkdir(exist_ok=True, parents=True)
+        print(f"Directory created or already exists: {d}")
         return d
                             
