@@ -91,6 +91,14 @@ with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
         'oov_rate': train_metrics['oov_rate'],
         'vocab_size': len(whitespace_grapheme_bert.get_vocab()),
         'wall_time_seconds': wall_time_taken,
+        'cpu_time_seconds': cpu_time_taken,
+        'sample_text': {
+            'raw': SAMPLE_TEXT,
+            'placeholder_substituted': sample_substituted,
+            'encoded_tokens': encoded.tokens,
+            'decoded_placeholder': decoded_placeholder,
+            'decoded_restored': restore_text(decoded_placeholder, placeholder_to_grapheme)
+        }
     }, f, indent=2)
 
 print(f"Saved to {out_dir}")

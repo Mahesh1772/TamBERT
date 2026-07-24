@@ -80,6 +80,12 @@ with open(out_dir / 'metrics.json', 'w', encoding='utf-8') as f:
         'oov_rate': train_metrics['oov_rate'],
         'vocab_size': len(bert.get_vocab()),
         'wall_time_seconds': wall_time_taken,
+        'cpu_time_seconds': cpu_time_taken,
+        'sample_text': {
+            'raw': SAMPLE_TEXT,
+            'encoded_tokens': encoded.tokens,
+            'decoded': bert.decode(encoded.ids)
+        }
     }, f, indent=2)
 
 print(f"Saved to {out_dir}")
