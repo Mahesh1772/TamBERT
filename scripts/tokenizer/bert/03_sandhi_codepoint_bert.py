@@ -1,7 +1,7 @@
 from time import time, process_time
 from tokenizers import Regex, Tokenizer, normalizers, pre_tokenizers, decoders, processors
-from tokenizers.models import BPE
-from tokenizers.trainers import BpeTrainer
+from tokenizers.models import WordPiece
+from tokenizers.trainers import WordPieceTrainer
 import sys, json
 from pathlib import Path
 
@@ -15,7 +15,7 @@ from paths import Paths
 paths = Paths()
 
 # Define the tokenizer
-sandhi_bert = Tokenizer(BPE(unk_token=UNK_TOKEN))
+sandhi_bert = Tokenizer(WordPiece())
 
 # Normalizer
 sandhi_bert.normalizer = normalizers.Sequence([normalizers.NFC(),
@@ -33,7 +33,9 @@ print("Pre-tokenization process (on a sandhi-marked sample):")
 print(sandhi_bert.pre_tokenizer.pre_tokenize_str(sample_marked))
 
 # Trainer
-sandhi_bert_trainer = BpeTrainer(special_tokens=BPE_SPECIAL_TOKENS, vocab_size=VOCAB_SIZE)
+sandhi_bert_trainer = WordPieceTrainer(special_tokens=BPE_SPECIAL_TOKENS,
+                                vocab_size=VOCAB_SIZE,
+                                unk_token=UNK_TOKEN)
 
 # Train
 start_cpu_time, start_wall_time = process_time(), time()
@@ -43,8 +45,9 @@ cpu_time_taken = end_cpu_time - start_cpu_time
 wall_time_taken = end_wall_time - start_wall_time
 
 # Decoder — must match the pre-tokenizer's marker scheme
-sandhi_bert.decoder = decoders.Sequence([decoders.Metaspace(),
-                                         decoders.Replace(Regex("⟂"), "")])
+sandhi_bert.decoder = decoders.Sequence([decoders.WordPiece(prefix="##", cleanup=True),
+                                        decoders.Metaspace(),
+                                        decoders.Replace(Regex("⟂"), "")])
 
 # Evaluate
 train_metrics = calculate_tokenizer_metrics(sandhi_bert, paths.test_sandhi_marked)

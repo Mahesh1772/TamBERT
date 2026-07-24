@@ -1,7 +1,7 @@
 from time import time, process_time
 from tokenizers import Regex, Tokenizer, normalizers, pre_tokenizers, decoders, processors
-from tokenizers.models import BPE
-from tokenizers.trainers import BpeTrainer
+from tokenizers.models import WordPiece
+from tokenizers.trainers import WordPieceTrainer
 import sys, json
 import regex as re
 from pathlib import Path
@@ -18,7 +18,7 @@ placeholder_map = load_map(paths.grapheme_placeholder_map)
 placeholder_to_grapheme = {v: k for k, v in placeholder_map.items()}
 
 # Define the tokenizer
-whitespace_grapheme_bert = Tokenizer(BPE(unk_token=UNK_TOKEN))
+whitespace_grapheme_bert = Tokenizer(WordPiece())
 
 # Normalizer, as previously defined in the `TamBert Data Analysis Notebook` file
 whitespace_grapheme_bert.normalizer = normalizers.Sequence([normalizers.NFC(),
@@ -36,9 +36,10 @@ sample_substituted = substitute_line(SAMPLE_TEXT, placeholder_map)
 print(whitespace_grapheme_bert.pre_tokenizer.pre_tokenize_str(sample_substituted))
 
 # Trainer
-whitespace_grapheme_bert_trainer = BpeTrainer(
+whitespace_grapheme_bert_trainer = WordPieceTrainer(
     special_tokens=BPE_SPECIAL_TOKENS,
     vocab_size=VOCAB_SIZE,
+    unk_token=UNK_TOKEN,
 )
 
 # Train
