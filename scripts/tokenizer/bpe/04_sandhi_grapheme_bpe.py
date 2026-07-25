@@ -1,5 +1,5 @@
 from time import time, process_time
-from tokenizers import Regex, Tokenizer, normalizers, pre_tokenizers, decoders, processors
+from tokenizers import Regex, Tokenizer, pre_tokenizers, decoders, processors
 from tokenizers.models import BPE
 from tokenizers.trainers import BpeTrainer
 import sys, json
@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from metrics import calculate_tokenizer_metrics
-from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT
+from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT, standard_normalizer
 from grapheme_remap import load_map, substitute_line, restore_text
 from sandhi import sandhi_mark_boundaries
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -22,11 +22,7 @@ placeholder_to_grapheme = {v: k for k, v in placeholder_map.items()}
 sandhi_grapheme_bpe = Tokenizer(BPE(unk_token=UNK_TOKEN))
 
 # Normalizer
-sandhi_grapheme_bpe.normalizer = normalizers.Sequence([normalizers.NFC(),
-                                                 normalizers.Replace(Regex(r",+"), ","),
-                                                 normalizers.Replace(Regex(r"\.+"), "."),
-                                                 normalizers.Replace(Regex(r"'+"), "'"),
-                                                 normalizers.Replace(Regex(r"-+"), "-")])
+sandhi_grapheme_bpe.normalizer = standard_normalizer
 
 # Pre-tokenizer — Metaspace: bakes a word-boundary marker (▁)
 # directly into token text, so decoding survives arbitrary subword splitting

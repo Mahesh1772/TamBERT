@@ -1,3 +1,5 @@
+from tokenizers import Regex, normalizers
+
 SAMPLE_TEXT = "அம்மா வீட்டில் இருக்கிறார்!!! நான் பள்ளிக்கு, 12. போகிறேன்."
 
 # --- CONSTANTS ---
@@ -12,3 +14,11 @@ BPE_SPECIAL_TOKENS = [UNK_TOKEN, '[CLS]', '[SEP]', '[PAD]', '[MASK]'] + UNUSED_T
 # Unigram Model constants
 # UNIGRAM_UNK_TOKEN = '<unk>'
 # UNIGRAM_SPECIAL_TOKENS = [UNIGRAM_UNK_TOKEN, '<cls>', '<sep>', '<pad>', '<mask>', '<s>', '</s>'] + UNUSED_TOKENS
+
+standard_normalizer = normalizers.Sequence([
+    normalizers.Strip(),
+    normalizers.NFC(),
+    normalizers.Replace(Regex(r",+"), ","),
+    normalizers.Replace(Regex(r"\.+"), "."),
+    normalizers.Replace(Regex(r"'+"), "'"),
+    normalizers.Replace(Regex(r"-+"), "-")])
