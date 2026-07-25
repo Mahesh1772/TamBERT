@@ -19,4 +19,9 @@ python scripts/tokenizer/grapheme_precompute.py
 if errorlevel 1 (echo ERROR: Sandhi split grapheme generation failed. & pause & exit /b 1)
 echo Sandhi split grapheme files generated successfully.
 
+echo Running BPE tokenizer training...
+python scripts/tokenizer/bpe/train_bpe_tokenizer.py
+if errorlevel 1 (echo ERROR: BPE tokenizer training failed. & pause & exit /b 1)
+echo BPE tokenizer training completed successfully.
+
 pause
