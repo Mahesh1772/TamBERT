@@ -137,7 +137,7 @@ This warrants and additional step that was computed by the file - `sandhi_precom
 
 #### **What is Sandhi Split**
 
-This is a custom pattern which is used to segment/split the input text so that tamil text can be partitioned correctly into the 'samllest' lingustically alligned character (even if it spans multiple unicode characters).
+This is a custom pattern which is used to segment/split the input text so that tamil text can be partitioned correctly into the 'samllest' lingustically alligned word (as certain words in tamil can be decomposed to contain multiple subwords).
 
 This module is adopted from [Aagathiyam: Sandhi aware tokenization for Tamil](https://github.com/RoshiniPriya05/Agathiyam-Tamil/blob/main/Agathiyam-%20Sandhi%20aware%20tokenization%20for%20Tamil%20Language/core/sandhi.py) research paper directly.
 
@@ -190,13 +190,15 @@ The module uses well documented and known tamil word/vowel appreance use cases t
 
 Above proecess found in `sandhi.py`.
 
-### What a "grapheme split file" is, and why the first attempt was silently wrong
+### What a "grapheme split" is, and why the first attempt was silently wrong
 
-A Tamil grapheme cluster — one visual "letter" a reader perceives as a single unit — is often *more than one Unicode codepoint* under the hood: a base consonant plus a dependent vowel sign, sometimes plus a virama. `கா` looks like one character but is two codepoints. The tokenizer, left to its own devices, works at the codepoint level, so nothing stops it from learning a token boundary that falls *inside* a grapheme cluster — semantically meaningless, splits that shouldn't exist.
+A Tamil grapheme cluster — one visual "letter" a reader perceives as a single unit, which is often *more than one Unicode codepoint* under the hood: a base consonant plus a dependent vowel sign, sometimes plus a virama. `கா` looks like one character but is two codepoints. The tokenizer, left to its own devices, works at the codepoint level, so nothing stops it from learning a token boundary that falls *inside* a grapheme cluster that are semantically meaningless, splits that shouldn't exist.
+
+#### Failed first attempt to enforce grapheme to be the smallest unit
 
 The first attempt to prevent this: collect every distinct grapheme cluster in the corpus (`regex.findall(r"\X", ...)`) and hand that list to the trainer via `initial_alphabet`, hoping it would seed each cluster as one atomic starting unit.
 
-This failed silently. The `tokenizers` library documents `initial_alphabet` as keeping only the *first character* of any multi-character string passed in — no error, no warning. So instead of seeding `கா` as one atomic 2-codepoint unit, it silently kept just `க` — which the trainer would have picked up on its own anyway, since single codepoints are common. The "grapheme-aware" seeding was a complete no-op, and nothing in the run would have told us that. This is almost certainly the same root cause as the ~1,492-entry vocab cap hit earlier — a hidden truncation, not a crash.
+This failed silently. The `tokenizers` library documents `initial_alphabet` as keeping only the *first character* of any multi-character string passed in. So instead of seeding `கா` as one atomic 2-codepoint unit, it silently kept just `க`. The "grapheme-aware" seeding was a complete no-op, and nothing in the run would have told us that. This is almost certainly the same root cause as the ~1,492-entry vocab cap hit earlier.
 
 #### How it's actually fixed
 
@@ -206,7 +208,7 @@ This failed silently. The `tokenizers` library documents `initial_alphabet` as k
 2. Assign each one a single placeholder codepoint, pulled from the Unicode Private Use Area (an unused range with no assigned meaning of its own — safe to repurpose).
 3. Rewrite the corpus, swapping every occurrence of a multi-codepoint cluster for its one-codepoint placeholder.
 
-Since a placeholder is exactly one codepoint by construction, the trainer can't split it — atomicity falls out automatically, no special training parameter needed. Crucially, this is different from (and doesn't repeat the mistake of) trying to isolate each grapheme cluster as its own pre-tokenizer split: that approach was floated and rejected separately, because pre-tokenizer boundaries are hard walls the model can never merge across — it would have capped every token at exactly one grapheme cluster, never letting multiple clusters combine into a bigger subword token, which is the entire point of running BPE/Unigram in the first place. The placeholder swap avoids this because it happens at the character level, *before* pre-tokenization — ordinary word-level Metaspace splitting still applies on top, so merging across (now single-codepoint) grapheme boundaries within a word works exactly as it always did.
+Since a placeholder is exactly one codepoint by construction, the trainer can't split it. Crucially, this is different from trying to isolate each grapheme cluster as its own pre-tokenizer split: that approach was floated and rejected separately, because pre-tokenizer boundaries are hard walls the model can never merge across. That would cap every token at exactly one grapheme cluster, never letting multiple clusters combine into a bigger subword token, which is the entire point of running BPE/Unigram in the first place. The placeholder swap avoids this because it happens at the character level, so merging across (now single-codepoint) grapheme boundaries within a word works exactly as it always did.
 
 #### Why we regenerated the sandhi-marked files
 

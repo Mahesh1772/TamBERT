@@ -179,6 +179,9 @@ Rule(re.compile(r"(\S)\s+(?=\S)")),
 # boundaries are now computed directly and correctly below instead.
 TA_PHONOLOGICAL_RULES: List[Rule] = TA_RULES[:-1]
 
+from ta_sandhi_rules import TA_RULES_CORE
+TA_PHONOLOGICAL_RULES: List[Rule] = TA_RULES_CORE
+
 def _rule_boundary(m) -> int:
     if m.lastindex and m.lastindex >= 2:
         return m.start(2)
