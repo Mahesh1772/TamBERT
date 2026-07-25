@@ -116,7 +116,7 @@ TA_RULES_CORE: List[Rule] = [
     # only அ (broader than rule B's ு/ூ+அ pair — higher recall, a shade
     # lower precision since it fires on any u-final word before a vowel).
     # =====================================================================
-    Rule(re.compile(rf"(ு|ூ)([{_V}])")),
+    #Rule(re.compile(rf"(ு|ூ)([{_V}])")), Already covered in B
 
     # =====================================================================
     # E) திசைப்பெயர்ப் புணர்ச்சி — நூற்பா 186 (CLOSED lexical set, safe).
@@ -156,7 +156,7 @@ TA_RULES_CORE: List[Rule] = [
     # H) வேற்றுமை உருபு இணைவு (case-suffix / postposition joins)
     # =====================================================================
     Rule(re.compile(rf"([{_V}])(ஐ)")),                       # 2nd case (accusative) -ஐ
-    Rule(re.compile(rf"([{_V}])(?:உ|க்)கு")),              # 4th case (dative) -க்கு/-உக்கு
+    Rule(re.compile(rf"([{_V}])(உ|க்)கு")),              # 4th case (dative) -க்கு/-உக்கு
     Rule(re.compile(rf"([{_V}])(ஆல்|னால்)")),                # 3rd case (instrumental) -ஆல்/-னால்
     Rule(re.compile(rf"([{_V}])(இல்|அல்)")),                 # 7th case (locative) -இல்/-அல்
     Rule(re.compile(rf"([{_V}])(இடம்|உடன்|முன்|பின்|ஓடு|ஓடே)")),  # postpositions
@@ -186,7 +186,7 @@ TA_RULES_CORE: List[Rule] = [
     # a following வல்லின consonant to double (அந்த+பையன்→அந்தப்பையன்).
     # =====================================================================
     Rule(re.compile(r"(அந்த|இந்த|அத்துணை|இத்துணை|எத்துணை|அவ்வகை|இவ்வகை|"
-                     r"எவ்வகை|மற்ற|மற்று|மற்றை|அரை|பாதி)(\S)")),
+                     r"எவ்வகை|மற்று|மற்றை|மற்ற|அரை|பாதி)(\S)")),
 ]
 
 
