@@ -17,4 +17,6 @@
 | IndicSBERT-STS (multilingual, zero-shot on Tamil)       | Multilingual   | 0.82                          |
 
 [English STS link](https://huggingface.co/datasets/sentence-transformers/stsb)
+
+
 [NLI Fine Tuning Data](huggingface.co/datasets/Divyanshu/indicxnli/viewer/ta)
