@@ -1,0 +1,27 @@
+model_type: "unigram"
+relabel_vocab_after_save: true  
+
+variants:
+  - name: "01_metaspace_codepoint_unigram"
+    use_sandhi: false
+    use_grapheme: false
+    train_attr: "train"
+    test_attr: "test"
+
+  - name: "02_metaspace_grapheme_unigram"
+    use_sandhi: false
+    use_grapheme: true
+    train_attr: "train_grapheme_marked"
+    test_attr: "test_grapheme_marked"
+
+  - name: "03_sandhi_codepoint_unigram"
+    use_sandhi: true
+    use_grapheme: false
+    train_attr: "train_sandhi_marked"
+    test_attr: "test_sandhi_marked"
+
+  - name: "04_sandhi_grapheme_unigram"
+    use_sandhi: true
+    use_grapheme: true
+    train_attr: "train_sandhi_grapheme_marked"
+    test_attr: "test_sandhi_grapheme_marked"

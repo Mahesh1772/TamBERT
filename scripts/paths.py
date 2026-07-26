@@ -15,16 +15,23 @@ class Paths:
     metrics : Path = field(init=False)
     corpus : Path = field(init=False)
     tokenizer : Path = field(init=False)
-    
+
     project_madurai : Path = field(init=False)
     tamil_wiki : Path = field(init=False)
     tamil_wiki_long_lines : Path = field(init=False)
     tamil_cc100 : Path = field(init=False)
     merged_deduped : Path = field(init=False)
+    
     train : Path = field(init=False)
+    train_sandhi_marked : Path = field(init=False)
+    train_grapheme_marked : Path = field(init=False)
+    train_sandhi_grapheme_marked : Path = field(init=False)
     test : Path = field(init=False)
-    train_sandhi_marked: Path = field(init=False)
-    test_sandhi_marked: Path = field(init=False)
+    test_sandhi_marked : Path = field(init=False)
+    test_grapheme_marked : Path = field(init=False)
+    test_sandhi_grapheme_marked : Path = field(init=False)
+    
+    grapheme_placeholder_map : Path = field(init=False)
 
     def __post_init__(self):
         # Ensure that all directories exist
@@ -61,10 +68,16 @@ class Paths:
         self.test = self.corpus / 'test.txt'
         self.train_sandhi_marked = self.corpus / 'train_sandhi_marked.txt'
         self.test_sandhi_marked = self.corpus / 'test_sandhi_marked.txt'
+        self.train_grapheme_marked = self.corpus / 'train_grapheme_marked.txt'
+        self.test_grapheme_marked = self.corpus / 'test_grapheme_marked.txt'
+        self.train_sandhi_grapheme_marked = self.corpus / 'train_sandhi_grapheme_marked.txt'
+        self.test_sandhi_grapheme_marked = self.corpus / 'test_sandhi_grapheme_marked.txt'
         
         self.hygiene_summary = self.metrics / 'hygiene_metrics_summary.csv'
         self.corpus_metrics_summary = self.metrics / 'corpus_metrics_summary.csv'
         self.sentence_length_summary = self.metrics / 'sentence_length_summary.csv'
+        
+        self.grapheme_placeholder_map = self.tokenizer / 'grapheme_placeholder_map.json'
 
     def metrics_targets(self):
         """
@@ -88,5 +101,6 @@ class Paths:
         """
         d = self.tokenizer / name
         d.mkdir(exist_ok=True, parents=True)
+        print(f"Directory created or already exists: {d}")
         return d
                             
