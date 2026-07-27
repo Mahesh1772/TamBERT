@@ -6,3 +6,4 @@
 scripts/test.py
 /scripts/tokenizer/__pycache__
 /scripts/data_pipeline/__pycache__
+/scripts/tambert.egg-info

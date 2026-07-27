@@ -6,14 +6,10 @@ this folder's config.yaml.
     python train_bpe_tokenizer.py
     python train_bpe_tokenizer.py --only 03_sandhi_codepoint_bpe
 """
-import argparse, sys
+import argparse
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from pipeline import run_variants
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from tokenizer.core.pipeline import run_variants
 from paths import Paths
-
 
 def main():
     parser = argparse.ArgumentParser(description="Train BPE tokenizer variants")

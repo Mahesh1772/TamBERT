@@ -1,10 +1,7 @@
-from pathlib import Path
-import sys
 import unicodedata
 from pybloom_live import ScalableBloomFilter
 from utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR
 import pandas as pd
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 
 def is_combining_mark(ch: str) -> bool:

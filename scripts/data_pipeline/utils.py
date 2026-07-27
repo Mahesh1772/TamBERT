@@ -1,9 +1,5 @@
 import random, re, regex
-import sys
 import requests
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
-from paths import Paths
 
 # Define Vocabulary parameters
 ENGLISH_WORDS  = re.compile(r'[A-Za-z]+')   # removes ALL Latin, including single chars

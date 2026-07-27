@@ -1,8 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
-import sys
 from tqdm.asyncio import tqdm
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 from utils import reservoir_sample, TAMIL_CHARACTERS
 

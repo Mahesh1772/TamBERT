@@ -1,5 +1,3 @@
-from pathlib import Path
-import sys
 import numpy as np
 from collections import defaultdict
 from array import array
@@ -7,7 +5,6 @@ from scipy.stats import entropy as scipy_entropy
 from utils import NEW_LINE
 import pandas as pd
 import matplotlib.pyplot as plt
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 
 def mtld_pass(ids, threshold=0.72):

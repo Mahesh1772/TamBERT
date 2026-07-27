@@ -190,7 +190,6 @@ def compare_with_mbert(paths, out_dir):
 def main():
     paths = Paths()
     out_dir = paths.tokenizer_name_generator("tokenizer_statistics")
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     variants = discover_tokenizer_dirs(paths)
     df = build_metrics_dataframe(variants)

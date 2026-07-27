@@ -1,11 +1,7 @@
 import re, requests
-import sys
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 from tqdm import tqdm
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
-from paths import Paths
 from utils import TAMIL_CHARACTERS, extract_tamil_words, reservoir_sample
 
 def get_project_madurai_links():

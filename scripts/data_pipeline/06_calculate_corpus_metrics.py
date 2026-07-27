@@ -8,7 +8,6 @@ from scipy.stats import entropy as scipy_entropy
 from utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR
 import pandas as pd
 import matplotlib.pyplot as plt
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 
 def is_combining_mark(ch: str) -> bool:

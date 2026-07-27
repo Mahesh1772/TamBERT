@@ -1,10 +1,7 @@
 import bz2, re
-import sys
 from lxml import etree
-from pathlib import Path
 from tqdm import tqdm
 from utils import download_file, extract_tamil_words, reservoir_sample
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 
 def setup_environment(wiki_dump_url='https://dumps.wikimedia.org/tawiki/latest/tawiki-latest-pages-articles.xml.bz2',

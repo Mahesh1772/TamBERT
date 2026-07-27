@@ -1,8 +1,5 @@
 import re, lzma
-from pathlib import Path
-import sys
 from tqdm import tqdm
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 from utils import download_file, extract_tamil_words, reservoir_sample
 

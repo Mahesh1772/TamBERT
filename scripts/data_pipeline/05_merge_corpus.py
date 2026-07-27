@@ -1,9 +1,7 @@
 import os, random, fileinput
 from pathlib import Path
-import sys
 from tqdm import tqdm
 import hashlib
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so `paths.py` in scripts/ is importable
 from paths import Paths
 from utils import reservoir_sample, TAMIL_CHARACTERS
 
