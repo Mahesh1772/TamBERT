@@ -15,19 +15,17 @@ from pipeline import load_config
 from metrics import calculate_tokenizer_metrics
 
 # each family's config.yaml, relative to this file
-FAMILY_CONFIGS = ["bpe/config.yaml", "unigram/config.yaml", "wordpiece/config.yaml"]
+FAMILY_CONFIGS = ["bpe/config.yaml", "unigram/config.yaml", "bert/config.yaml"]
 
 
 # 1. collect every tokenizer variant's metrics.json + tokenizer.json
 def discover_tokenizer_dirs(paths):
-    print(f"Discovering tokenizer variants in {paths.tokenizer}...")
     variants = {}
     for sub in Path(paths.tokenizer).iterdir():
-        if sub.is_dir():
-            variants[sub.name] = {
-                "metrics": sub / "metrics.json",
-                "tokenizer": sub / "tokenizer.json",
-            }
+        metrics_file = sub / "metrics.json"
+        tokenizer_file = sub / "tokenizer.json"
+        if sub.is_dir() and metrics_file.exists() and tokenizer_file.exists():
+            variants[sub.name] = {"metrics": metrics_file, "tokenizer": tokenizer_file}
     print(f"Found {len(variants)} tokenizer variants.")
     return variants
 
@@ -48,7 +46,7 @@ def build_metrics_dataframe(variants):
 
 # 3. one bar chart per metric, values labelled on top
 def plot_metric_bars(df, out_dir):
-    print("Plotting metric bars...")
+    print("Plotting fertility / oov_rate / vocab_size bar charts...")
     plot_df = df[["fertility", "oov_rate", "vocab_size"]].sort_values("fertility")
     formats = {"fertility": "%.3f", "oov_rate": "%.6f", "vocab_size": "%.0f"}
     for col in plot_df.columns:
@@ -62,6 +60,7 @@ def plot_metric_bars(df, out_dir):
 # variant name -> correct test file for the SAVED tokenizer.json
 # (relabelled grapheme variants expect raw text, not placeholder text)
 def build_test_file_map(paths):
+    print("Building variant to test file map from family configs...")
     base = Path(__file__).resolve().parent
     test_map = {}
     for rel_path in FAMILY_CONFIGS:
@@ -79,15 +78,14 @@ def build_test_file_map(paths):
 
 # 4. token length distribution per variant, zoomed and full-range as separate pngs
 def plot_length_distributions(variants, test_file_map, out_dir):
-    print("Plotting length distributions...")
+    print("Computing token length distributions...")
+    stats_rows = {}
     for name, files in variants.items():
         test_file = test_file_map.get(name)
         if test_file is None:
             continue
+        print(f"  {name}")
         tok = Tokenizer.from_file(str(files["tokenizer"]))
-        
-        print(f"Calculating token lengths for {name} using {test_file}...")
-        
         lengths = np.array([
             len(tok.encode(line, add_special_tokens=False).ids)
             for line in open(test_file, encoding="utf-8")
@@ -108,8 +106,12 @@ def plot_length_distributions(variants, test_file_map, out_dir):
         plt.savefig(out_dir / f"token_length_{name}_full_log.png")
         plt.close()
 
-        print(f"Token length stats for {name}:")
-        print(pd.Series(lengths).describe(percentiles=[.5, .75, .9, .95, .999]))
+        stats_rows[name] = pd.Series(lengths).describe(percentiles=[.5, .75, .9, .95, .999])
+
+    stats_df = pd.DataFrame(stats_rows).T
+    stats_df.to_csv(out_dir / "token_length_stats.csv")
+    print(stats_df)
+    return stats_df
 
 
 # isolated vs fused usage of the ⟂ marker for one tokenizer
@@ -144,6 +146,7 @@ def plot_marker_usage(usage_df, out_path, title):
 
 # 5. marker usage across sandhi variants, split codepoint / grapheme / combined
 def run_sandhi_analysis(variants, test_file_map, out_dir):
+    print("Running sandhi marker usage analysis...")
     codepoint_rows, grapheme_rows = {}, {}
     for name, files in variants.items():
         if "sandhi" not in name:
@@ -160,6 +163,7 @@ def run_sandhi_analysis(variants, test_file_map, out_dir):
     codepoint_df = pd.DataFrame(codepoint_rows).T
     grapheme_df = pd.DataFrame(grapheme_rows).T
     combined_df = pd.concat([codepoint_df, grapheme_df])
+    combined_df.to_csv(out_dir / "sandhi_marker_usage.csv")
 
     if not codepoint_df.empty:
         plot_marker_usage(codepoint_df, out_dir / "sandhi_marker_usage_codepoint.png",
@@ -174,6 +178,7 @@ def run_sandhi_analysis(variants, test_file_map, out_dir):
 
 # 6. mBERT comparison
 def compare_with_mbert(paths, out_dir):
+    print("Loading mBERT tokenizer for comparison...")
     mbert = AutoTokenizer.from_pretrained("bert-base-multilingual-cased", use_fast=True)
     metrics = calculate_tokenizer_metrics(mbert.backend_tokenizer, paths.test, unknown_token="[UNK]")
     with open(out_dir / "mbert_metrics.json", "w", encoding="utf-8") as f:
