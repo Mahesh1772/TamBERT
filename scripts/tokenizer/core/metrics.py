@@ -1,5 +1,5 @@
 from pathlib import Path
-from constants import UNK_TOKEN
+from tokenizer.core.constants import UNK_TOKEN
 
 def calculate_fertility(tokenizer,
                         file_path: Path,

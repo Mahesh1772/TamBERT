@@ -2,12 +2,12 @@ import regex as re
 from dataclasses import dataclass
 from typing import List, Tuple
 from typing import Set 
+from tokenizer.core.ta_sandhi_rules import TA_RULES_CORE
 
 @dataclass
 class Rule:
     pattern: re.Pattern
 
-from ta_sandhi_rules import TA_RULES_CORE
 TA_PHONOLOGICAL_RULES: List[Rule] = TA_RULES_CORE
 
 def _rule_boundary(m) -> int:

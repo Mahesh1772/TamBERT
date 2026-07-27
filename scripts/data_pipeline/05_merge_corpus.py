@@ -3,7 +3,7 @@ from pathlib import Path
 from tqdm import tqdm
 import hashlib
 from paths import Paths
-from utils import reservoir_sample, TAMIL_CHARACTERS
+from data_pipeline.utils import reservoir_sample, TAMIL_CHARACTERS
 
 def merge_text_files(input_dir:Path, output_file:Path):
     """

@@ -9,10 +9,9 @@ import matplotlib.pyplot as plt
 from tokenizers import Tokenizer
 from transformers import AutoTokenizer
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from paths import Paths
-from pipeline import load_config
-from metrics import calculate_tokenizer_metrics
+from tokenizer.core.pipeline import load_config
+from tokenizer.core.metrics import calculate_tokenizer_metrics
 
 # each family's config.yaml, relative to this file
 FAMILY_CONFIGS = ["bpe/config.yaml", "unigram/config.yaml", "bert/config.yaml"]

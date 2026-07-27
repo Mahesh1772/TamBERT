@@ -1,7 +1,7 @@
 import bz2, re
 from lxml import etree
 from tqdm import tqdm
-from utils import download_file, extract_tamil_words, reservoir_sample
+from data_pipeline.utils import download_file, extract_tamil_words, reservoir_sample
 from paths import Paths
 
 def setup_environment(wiki_dump_url='https://dumps.wikimedia.org/tawiki/latest/tawiki-latest-pages-articles.xml.bz2',

@@ -1,7 +1,7 @@
 import re, lzma
 from tqdm import tqdm
 from paths import Paths
-from utils import download_file, extract_tamil_words, reservoir_sample
+from data_pipeline.utils import download_file, extract_tamil_words, reservoir_sample
 
 def setup_environment(cc_url='https://data.statmt.org/cc-100/ta.txt.xz', cc100_file=None):
     """

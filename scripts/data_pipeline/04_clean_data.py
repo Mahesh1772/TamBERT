@@ -2,7 +2,7 @@ from collections import defaultdict
 from pathlib import Path
 from tqdm.asyncio import tqdm
 from paths import Paths
-from utils import reservoir_sample, TAMIL_CHARACTERS
+from data_pipeline.utils import reservoir_sample, TAMIL_CHARACTERS
 
 def real_content_ratio(line):
     tokens = line.split()

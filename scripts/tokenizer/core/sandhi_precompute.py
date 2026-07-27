@@ -1,9 +1,5 @@
-# One-time offline pass (run once, save forever)
-from pathlib import Path
-import sys
 from tqdm import tqdm
-from sandhi import sandhi_split, sandhi_mark_boundaries
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from tokenizer.core.sandhi import sandhi_mark_boundaries
 from paths import Paths
 
 paths = Paths()

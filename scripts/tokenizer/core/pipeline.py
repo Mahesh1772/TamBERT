@@ -23,20 +23,17 @@ requires touching this file:
       reference vocab entries — leave False there unless checked.
 """
 from time import time, process_time
-from pathlib import Path
-import sys, json
+import json
 
 import yaml
 from tokenizers import Regex, Tokenizer, decoders, pre_tokenizers, processors
 from tokenizers.models import BPE, Unigram, WordPiece
 from tokenizers.trainers import BpeTrainer, UnigramTrainer, WordPieceTrainer
 
-# pipeline.py lives alongside metrics.py/constants.py/etc.
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from metrics import calculate_tokenizer_metrics
-from constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT, standard_normalizer
-from grapheme_remap import load_map, substitute_line, restore_text, restore_vocab_in_place
-from sandhi import sandhi_mark_boundaries
+from tokenizer.core.metrics import calculate_tokenizer_metrics
+from tokenizer.core.constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT, standard_normalizer
+from tokenizer.core.grapheme_remap import load_map, substitute_line, restore_text, restore_vocab_in_place
+from tokenizer.core.sandhi import sandhi_mark_boundaries
 
 
 _MODEL_BUILDERS = {

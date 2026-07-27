@@ -5,7 +5,7 @@ from collections import defaultdict
 from pybloom_live import ScalableBloomFilter
 from array import array
 from scipy.stats import entropy as scipy_entropy
-from utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR
+from data_pipeline.utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR
 import pandas as pd
 import matplotlib.pyplot as plt
 from paths import Paths

@@ -1,6 +1,6 @@
 import unicodedata
 from pybloom_live import ScalableBloomFilter
-from utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR
+from data_pipeline.utils import DISALLOWED, NON_ALPHA, NEW_LINE, REPLACEMENT_CHAR
 import pandas as pd
 from paths import Paths
 

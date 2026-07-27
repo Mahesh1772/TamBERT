@@ -1,7 +1,4 @@
-import sys
-from pathlib import Path
-from grapheme_remap import find_multi_codepoint_graphemes, build_placeholder_map, save_map, substitute_file
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tokenizer.core.grapheme_remap import find_multi_codepoint_graphemes, build_placeholder_map, save_map, substitute_file
 from paths import Paths
 
 paths = Paths()

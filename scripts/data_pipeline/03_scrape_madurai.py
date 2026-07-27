@@ -2,7 +2,7 @@ import re, requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
-from utils import TAMIL_CHARACTERS, extract_tamil_words, reservoir_sample
+from data_pipeline.utils import TAMIL_CHARACTERS, extract_tamil_words, reservoir_sample
 
 def get_project_madurai_links():
     """

@@ -2,7 +2,7 @@ import numpy as np
 from collections import defaultdict
 from array import array
 from scipy.stats import entropy as scipy_entropy
-from utils import NEW_LINE
+from data_pipeline.utils import NEW_LINE
 import pandas as pd
 import matplotlib.pyplot as plt
 from paths import Paths
