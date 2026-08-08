@@ -11,7 +11,7 @@ paths = Paths()
 tokenizer_path = paths.tokenizer_name_generator('03_sandhi_codepoint_bert') / 'tokenizer.json'  # confirmed lowest fertility (1.341) of all 12 variants
 
 # Single load, reused for config sizing below and for encode_batch further down (was loaded twice before)
-raw_tokenizer = Tokenizer.from_file(tokenizer_path)
+raw_tokenizer = Tokenizer.from_file(str(tokenizer_path))
 
 vocab_size = raw_tokenizer.get_vocab_size()          # already an int; no len() needed
 pad_id = raw_tokenizer.token_to_id(PAD_TOKEN)         # looked up once, reused for pad_token_id and max_position_embeddings below
@@ -70,7 +70,6 @@ training_args = TrainingArguments(
     per_device_eval_batch_size=16,
     gradient_accumulation_steps=4,          # effective batch size = 16*4 = 64
     fp16=True,                              # mixed precision for GPU throughput/memory headroom
-    group_by_length=True,                   # NEW: bucket similar-length sequences together; big win given how skewed your token-length histogram is toward short lines
     save_total_limit=2,                     # keep 2 checkpoints: room for the current "best" plus the latest, so load_best_model_at_end never gets evicted mid-run
     load_best_model_at_end=True,            # always finish with the lowest eval_loss checkpoint, not just the last epoch
     metric_for_best_model='eval_loss',

@@ -10,3 +10,5 @@ scipy
 tqdm
 grapheme
 tokenizers
+datasets
+transformers[torch]
