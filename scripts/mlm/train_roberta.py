@@ -58,7 +58,7 @@ data_collator = DataCollatorForLanguageModeling(
 
 # Training configuration
 training_args = TrainingArguments(
-    output_dir=str(paths.mlm_run_generator('03_sandhi_codepoint_bert_6L768H')),  # named per tokenizer + architecture, avoids checkpoint collisions across runs
+    output_dir=str(paths.mlm_run_generator('03_sandhi_codepoint_bert')),  # named per tokenizer + architecture, avoids checkpoint collisions across runs
     eval_strategy='epoch',                  # evaluate once per epoch
     save_strategy='epoch',                  # checkpoint once per epoch, aligned with eval for load_best_model_at_end
     num_train_epochs=6,                     # ceiling, not a target; early stopping + load_best_model_at_end guard against overshooting
