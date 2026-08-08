@@ -15,6 +15,7 @@ class Paths:
     metrics : Path = field(init=False)
     corpus : Path = field(init=False)
     tokenizer : Path = field(init=False)
+    mlm : Path = field(init=False)
 
     project_madurai : Path = field(init=False)
     tamil_wiki : Path = field(init=False)
@@ -41,8 +42,9 @@ class Paths:
         self.metrics = self.data / 'metrics'
         self.corpus = self.data / 'corpus'
         self.tokenizer = self.root / 'tokenizer'
+        self.mlm = self.root / 'mlm'
         
-        for directory in [self.data, self.raw, self.cleaned, self.metrics, self.corpus, self.tokenizer]:
+        for directory in [self.data, self.raw, self.cleaned, self.metrics, self.corpus, self.tokenizer, self.mlm]:
             directory.mkdir(exist_ok=True, parents=True)
             print(f"Directory created or already exists: {directory}")
             
@@ -103,4 +105,17 @@ class Paths:
         d.mkdir(exist_ok=True, parents=True)
         print(f"Directory created or already exists: {d}")
         return d
-                            
+
+    def mlm_run_generator(self, name: str):
+        """
+        Creates (if needed) and returns a named subdirectory under mlm/ for a specific
+        training run, so checkpoints from different tokenizer/architecture configs
+        don't collide or get mixed up by load_best_model_at_end.
+
+        Args:
+            name (str): identifier for this run, e.g. tokenizer name + architecture variant
+        """
+        d = self.mlm / name
+        d.mkdir(exist_ok=True, parents=True)
+        print(f"Directory created or already exists: {d}")
+        return d

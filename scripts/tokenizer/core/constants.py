@@ -9,6 +9,10 @@ VOCAB_SIZE = 31000 + len(UNUSED_TOKENS)  # 31k is the BERT base vocab size, plus
 
 # BPE Model constants
 UNK_TOKEN = '[UNK]'
+PAD_TOKEN = '[PAD]'
+EOS_TOKEN = '[SEP]'
+BOS_TOKEN = '[CLS]'
+MASK_TOKEN = '[MASK]'
 BPE_SPECIAL_TOKENS = [UNK_TOKEN, '[CLS]', '[SEP]', '[PAD]', '[MASK]'] + UNUSED_TOKENS
 
 # Unigram Model constants
