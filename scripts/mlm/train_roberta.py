@@ -4,6 +4,7 @@ import os
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 from paths import Paths
 from tokenizer.core.constants import PAD_TOKEN, BOS_TOKEN, EOS_TOKEN, UNK_TOKEN, MASK_TOKEN
+from transformers.trainer_utils import get_last_checkpoint
 from datasets import load_dataset
 
 paths = Paths()
@@ -59,8 +60,10 @@ data_collator = DataCollatorForLanguageModeling(
 # Training configuration
 training_args = TrainingArguments(
     output_dir=str(paths.mlm_run_generator('03_sandhi_codepoint_bert')),  # named per tokenizer + architecture, avoids checkpoint collisions across runs
-    eval_strategy='epoch',                  # evaluate once per epoch
-    save_strategy='epoch',                  # checkpoint once per epoch, aligned with eval for load_best_model_at_end
+    eval_strategy='steps',                  # CHANGED from 'epoch': must match save_strategy for load_best_model_at_end (needed by EarlyStoppingCallback) — see eval_subset below for why this is cheap
+    eval_steps=2000,                        # matches save_steps so every save has a fresh eval_loss to compare against
+    save_strategy='steps',                  # CHANGED from 'epoch': one epoch is ~479k steps here, far too coarse for crash recovery
+    save_steps=2000,                        # NEW: checkpoint roughly every 2000 steps (~240 checkpoints/epoch); tune up once you've seen the I/O overhead per save
     num_train_epochs=6,                     # ceiling, not a target; early stopping + load_best_model_at_end guard against overshooting
     learning_rate=1e-4,                     # standard from-scratch RoBERTa/BERT peak LR
     lr_scheduler_type='linear',             # linear decay after warmup; matches original RoBERTa recipe
@@ -70,14 +73,16 @@ training_args = TrainingArguments(
     per_device_eval_batch_size=16,
     gradient_accumulation_steps=4,          # effective batch size = 16*4 = 64
     fp16=True,                              # mixed precision for GPU throughput/memory headroom
-    save_total_limit=2,                     # keep 2 checkpoints: room for the current "best" plus the latest, so load_best_model_at_end never gets evicted mid-run
-    load_best_model_at_end=True,            # always finish with the lowest eval_loss checkpoint, not just the last epoch
+    save_total_limit=3,                     # bumped from 2: a little more resume margin with frequent step-based saves
+    load_best_model_at_end=True,            # restored: required by EarlyStoppingCallback to track state.best_metric
     metric_for_best_model='eval_loss',
     greater_is_better=False,
 )
 
 # Callbacks
-early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=3)
+# patience is in EVAL CALLS, not epochs — at eval_steps=2000 that's a ~30,000-step no-improvement window (was
+# effectively ~1.4M steps at patience=3 epochs before); loosen/tighten once you've seen how noisy eval_loss is step-to-step
+early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=15)
 
 # DataLoading
 raw_tokenizer.enable_truncation(max_length=512)  # required: your token-length histogram has outlier lines up to ~2500 tokens, which would exceed max_position_embeddings without this
@@ -89,14 +94,32 @@ def tokenize_function(examples):
 
 tokenized_datasets = data.map(tokenize_function, batched=True, remove_columns=['text'])
 
+# Frequent step-based eval (every 2000 steps) against the FULL 3.4M-line test set would mean ~213k
+# eval forward-passes per pass (3.4M / eval_batch_size 16) — almost as expensive as a training epoch itself,
+# repeated ~240 times per epoch. Use a fixed, shuffled subsample for these frequent checks instead; the full
+# test set is still evaluated once at the very end, below, for the real reported metric.
+eval_subset_size = min(20000, len(tokenized_datasets['test']))
+eval_subset = tokenized_datasets['test'].shuffle(seed=42).select(range(eval_subset_size))
+
 # Trainer
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=tokenized_datasets['train'],
-    eval_dataset=tokenized_datasets['test'],
+    eval_dataset=eval_subset,          # small shuffled subsample — see comment above; full test set evaluated separately at the end
     data_collator=data_collator,
     callbacks=[early_stopping_callback]  # was defined but never attached before — early stopping wasn't actually active
 )
 
-trainer.train()
+# Resume from the last checkpoint in output_dir if one exists (e.g. after a crash); otherwise starts fresh
+last_checkpoint = get_last_checkpoint(training_args.output_dir) if os.path.isdir(training_args.output_dir) else None
+if last_checkpoint:
+    print(f"Resuming from checkpoint: {last_checkpoint}")
+else:
+    print("No checkpoint found, starting training from scratch")
+
+trainer.train(resume_from_checkpoint=last_checkpoint)
+
+# Full-corpus eval for the metric you'd actually report — the per-step evals above only ever saw the 20k subsample
+final_metrics = trainer.evaluate(eval_dataset=tokenized_datasets['test'])
+print(f"Final full test-set metrics: {final_metrics}")
