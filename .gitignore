@@ -9,3 +9,5 @@ scripts/test.py
 /scripts/tambert.egg-info
 /scripts/tokenizer/core/__pycache__
 train_log.txt
+*.pyc
+/.venv
