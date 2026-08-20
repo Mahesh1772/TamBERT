@@ -6,6 +6,7 @@ from paths import Paths
 from tokenizer.core.constants import PAD_TOKEN, BOS_TOKEN, EOS_TOKEN, UNK_TOKEN, MASK_TOKEN
 from transformers.trainer_utils import get_last_checkpoint
 from datasets import load_dataset
+import torch
 
 paths = Paths()
 
@@ -111,10 +112,21 @@ trainer = Trainer(
     callbacks=[early_stopping_callback]  # was defined but never attached before — early stopping wasn't actually active
 )
 
-# Resume from the last checkpoint in output_dir if one exists (e.g. after a crash); otherwise starts fresh
+# Resume from checkpoint when safe. Transformers 5.15+ blocks optimizer-state loading on torch < 2.6.
 last_checkpoint = get_last_checkpoint(training_args.output_dir) if os.path.isdir(training_args.output_dir) else None
-if last_checkpoint:
+torch_version_parts = torch.__version__.split('+')[0].split('.')
+torch_major = int(torch_version_parts[0])
+torch_minor = int(torch_version_parts[1]) if len(torch_version_parts) > 1 else 0
+can_resume_checkpoint = (torch_major, torch_minor) >= (2, 6)
+
+if last_checkpoint and can_resume_checkpoint:
     print(f"Resuming from checkpoint: {last_checkpoint}")
+elif last_checkpoint and not can_resume_checkpoint:
+    print(
+        "Checkpoint found but skipping resume because this environment uses torch<2.6; "
+        "starting from scratch to avoid blocked optimizer-state loading."
+    )
+    last_checkpoint = None
 else:
     print("No checkpoint found, starting training from scratch")
 
