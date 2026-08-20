@@ -9,5 +9,11 @@ scripts/test.py
 /scripts/tambert.egg-info
 /scripts/tokenizer/core/__pycache__
 train_log.txt
-*.pyc
 /.venv
+*.pt
+/mlm/03_sandhi_codepoint_bert/checkpoint-548000
+/mlm/03_sandhi_codepoint_bert/checkpoint-546000
+/mlm/03_sandhi_codepoint_bert/checkpoint-518000
+/mlm/03_sandhi_codepoint_bert/checkpoint-128000
+/mlm/03_sandhi_codepoint_bert/checkpoint-130000
+/mlm/03_sandhi_codepoint_bert/checkpoint-132000
