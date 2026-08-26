@@ -2,6 +2,8 @@
 
 > A note to self. Written so that getting lost mid-project is not an option.
 > **The goal:** A Tamil BERT that beats IndicSBERT-STS's Spearman score of **0.82** on the Tamil STS benchmark.
+> 
+> **Model Artifacts:** [Google Drive Folder](https://drive.google.com/drive/folders/1-fFuIsgYCrKbmJWZA-sdtO_UPyk6Fi1W?usp=sharing)
 
 ***
 
