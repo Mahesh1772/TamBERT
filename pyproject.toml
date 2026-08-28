@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tambert"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 
 # scripts/ is treated as the package root — tokenizer/, data_pipeline/, and
 # paths.py all become importable from anywhere as top-level names, no
