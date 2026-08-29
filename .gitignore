@@ -11,10 +11,6 @@ scripts/test.py
 train_log.txt
 /.venv
 *.pt
-/mlm/03_sandhi_codepoint_bert/checkpoint-548000
-/mlm/03_sandhi_codepoint_bert/checkpoint-546000
-/mlm/03_sandhi_codepoint_bert/checkpoint-518000
-/mlm/03_sandhi_codepoint_bert/checkpoint-128000
-/mlm/03_sandhi_codepoint_bert/checkpoint-130000
-/mlm/03_sandhi_codepoint_bert/checkpoint-132000
-/mlm/03_sandhi_codepoint_bert/checkpoint-128000
+/mlm/*/checkpoint-*
+/mlm/*/final
+.claude/settings.json
