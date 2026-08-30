@@ -1,15 +1,11 @@
 from tokenizers import Tokenizer
-from transformers import RobertaConfig, EarlyStoppingCallback, RobertaForMaskedLM, DataCollatorForLanguageModeling, PreTrainedTokenizerFast, Trainer, TrainerCallback, TrainingArguments
-import json
-import math
+from transformers import RobertaConfig, EarlyStoppingCallback, RobertaForMaskedLM, DataCollatorForLanguageModeling, PreTrainedTokenizerFast, Trainer, TrainingArguments
 import os
-import re
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 from paths import Paths
 from tokenizer.core.constants import PAD_TOKEN, BOS_TOKEN, EOS_TOKEN, UNK_TOKEN, MASK_TOKEN
-from transformers.trainer_utils import get_last_checkpoint
+from training_utils import RunRootStateWriter, add_perplexity, export_final_model, resolve_resume_checkpoint, save_run_artifacts
 from datasets import load_dataset
-import torch
 
 paths = Paths()
 
@@ -91,27 +87,7 @@ training_args = TrainingArguments(
 # Drop to ~5 (a ~50k-step window) once you've seen how noisy eval_loss actually is step-to-step.
 early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=15)
 
-
-class RunRootStateWriter(TrainerCallback):
-    """Mirrors trainer_state.json to the run root on every save.
-
-    Trainer writes trainer_state.json only *inside* each checkpoint, so save_total_limit rotation deletes the
-    metric history along with the weights, and an interrupted run leaves no history at the run root at all.
-    That is precisely how this run's segment-1 numbers came within one deleted directory of being lost: they
-    survived only because checkpoint-128000 happened to be the one that kept its copy.
-
-    Cost is negligible — the file is overwritten in place, so it occupies ~0.7 MB at the end of the full
-    2.88M-step schedule no matter how many times it is written (vs ~800 MB per checkpoint).
-    """
-
-    def __init__(self, run_dir):
-        self.state_path = run_dir / 'trainer_state.json'
-
-    def on_save(self, args, state, control, **kwargs):
-        if state.is_world_process_zero:
-            state.save_to_json(str(self.state_path))
-
-
+# Keeps trainer_state.json at the run root, outside save_total_limit rotation — see training_utils
 run_root_state_writer = RunRootStateWriter(mlm_run_dir)
 
 # DataLoading
@@ -142,96 +118,18 @@ trainer = Trainer(
                run_root_state_writer]    # keeps a rotation-proof, interruption-proof copy of the metric history
 )
 
-_CHECKPOINT_DIR_RE = re.compile(r'checkpoint-(\d+)$')
-_WEIGHT_FILES = ('model.safetensors', 'pytorch_model.bin')
-
-
-def find_resumable_checkpoint(output_dir):
-    """Highest-numbered checkpoint that can actually be resumed from.
-
-    get_last_checkpoint() only pattern-matches the `checkpoint-<step>` directory NAME, so it happily
-    returns a checkpoint whose contents are incomplete and the resume then fails deep inside Trainer.
-    This bit us for real: of this run's six checkpoints, only 128000 still had its weights and
-    optimizer state — 130000 had weights only, and 132000/518000/546000/548000 had neither, yet
-    get_last_checkpoint() would have picked 548000.
-
-    Both files are required, not just the weights: resuming from a weights-only checkpoint makes
-    Trainer silently reinitialize the optimizer moments and restart the LR schedule from step 0,
-    which is a quiet quality regression rather than a visible error.
-    """
-    if not os.path.isdir(output_dir):
-        return None
-
-    resumable = []
-    for entry in sorted(os.scandir(output_dir), key=lambda e: e.name):
-        match = _CHECKPOINT_DIR_RE.match(entry.name)
-        if not (entry.is_dir() and match):
-            continue
-        has_weights = any(os.path.isfile(os.path.join(entry.path, w)) for w in _WEIGHT_FILES)
-        has_optimizer = os.path.isfile(os.path.join(entry.path, 'optimizer.pt'))
-
-        missing = []
-        if not has_weights:
-            missing.append(' or '.join(_WEIGHT_FILES))
-        if not has_optimizer:
-            missing.append('optimizer.pt')
-
-        if missing:
-            print(f"Skipping unusable checkpoint {entry.name}: missing {', '.join(missing)}")
-        else:
-            resumable.append((int(match.group(1)), entry.path))
-
-    return max(resumable)[1] if resumable else None
-
-
-# Resume from checkpoint when safe. Transformers 5.15+ blocks optimizer-state loading on torch < 2.6.
-newest_checkpoint = get_last_checkpoint(training_args.output_dir) if os.path.isdir(training_args.output_dir) else None
-last_checkpoint = find_resumable_checkpoint(training_args.output_dir)
-if newest_checkpoint and last_checkpoint and os.path.normpath(newest_checkpoint) != os.path.normpath(last_checkpoint):
-    print(
-        f"NOTE: newest checkpoint on disk is {os.path.basename(newest_checkpoint)} but it is not resumable; "
-        f"falling back to {os.path.basename(last_checkpoint)}"
-    )
-torch_version_parts = torch.__version__.split('+')[0].split('.')
-torch_major = int(torch_version_parts[0])
-torch_minor = int(torch_version_parts[1]) if len(torch_version_parts) > 1 else 0
-can_resume_checkpoint = (torch_major, torch_minor) >= (2, 6)
-
-if last_checkpoint and can_resume_checkpoint:
-    print(f"Resuming from checkpoint: {last_checkpoint}")
-elif last_checkpoint and not can_resume_checkpoint:
-    print(
-        "Checkpoint found but skipping resume because this environment uses torch<2.6; "
-        "starting from scratch to avoid blocked optimizer-state loading."
-    )
-    last_checkpoint = None
-else:
-    print("No checkpoint found, starting training from scratch")
+# Validates checkpoint contents before resuming rather than trusting the directory name, and applies the
+# torch>=2.6 gate Transformers 5.15+ enforces for optimizer-state loading — see training_utils.
+last_checkpoint = resolve_resume_checkpoint(training_args.output_dir)
 
 trainer.train(resume_from_checkpoint=last_checkpoint)
 
-# Standalone export of the finished model — this was missing entirely, so the ONLY artifacts this script
-# ever produced were step checkpoints subject to save_total_limit rotation. Weights-only (~270 MB vs the
-# ~800 MB checkpoints, which also carry optimizer state), so this is the artifact to hand to NLI
-# fine-tuning and the only one worth uploading.
+# Standalone export of the finished model — this is the artifact NLI fine-tuning consumes.
 # Deliberately BEFORE the full-test-set eval below: that eval is ~213k forward passes over 3.4M lines,
 # and if it gets killed the weights are already safely on disk.
-final_dir = mlm_run_dir / 'final'
-trainer.save_model(str(final_dir))          # writes config.json + model.safetensors
-tokenizer.save_pretrained(str(final_dir))   # writes tokenizer.json + tokenizer_config.json + special_tokens_map.json
-print(f"Final model + tokenizer saved to {final_dir}")
+export_final_model(trainer, tokenizer, mlm_run_dir)
 
 # Full-corpus eval for the metric you'd actually report — the per-step evals above only ever saw the 20k subsample
-final_metrics = trainer.evaluate(eval_dataset=tokenized_datasets['test'])
-final_metrics['perplexity'] = math.exp(final_metrics['eval_loss'])  # the number worth quoting; README target is loss < 2.0 i.e. ppl < 7.4
+final_metrics = add_perplexity(trainer.evaluate(eval_dataset=tokenized_datasets['test']))
 print(f"Final full test-set metrics: {final_metrics}")
-
-# Persist metrics to the RUN ROOT, not inside a checkpoint. These were previously print-only, so the only
-# durable record of any metric was the trainer_state.json that Trainer happens to drop inside each
-# checkpoint — which save_total_limit rotates away. Segment 1's numbers survived by luck for exactly that
-# reason. Both files here are small JSON and sit outside the .gitignore'd checkpoint-*/final globs, so they
-# get committed as the permanent record of the run.
-with open(mlm_run_dir / 'final_metrics.json', 'w', encoding='utf-8') as f:
-    json.dump(final_metrics, f, indent=2)
-trainer.state.save_to_json(str(mlm_run_dir / 'trainer_state.json'))  # full log_history: every logged loss, LR and eval_loss
-print(f"Metrics and full log history saved to {mlm_run_dir}")
+save_run_artifacts(trainer, mlm_run_dir, final_metrics)

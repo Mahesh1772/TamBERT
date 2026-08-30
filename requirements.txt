@@ -14,3 +14,4 @@ grapheme
 tokenizers
 datasets
 transformers[torch]
+gdown

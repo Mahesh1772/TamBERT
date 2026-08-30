@@ -16,6 +16,8 @@ class Paths:
     corpus : Path = field(init=False)
     tokenizer : Path = field(init=False)
     mlm : Path = field(init=False)
+    nli : Path = field(init=False)
+    nli_data : Path = field(init=False)
 
     project_madurai : Path = field(init=False)
     tamil_wiki : Path = field(init=False)
@@ -43,8 +45,10 @@ class Paths:
         self.corpus = self.data / 'corpus'
         self.tokenizer = self.root / 'tokenizer'
         self.mlm = self.root / 'mlm'
-        
-        for directory in [self.data, self.raw, self.cleaned, self.metrics, self.corpus, self.tokenizer, self.mlm]:
+        self.nli = self.root / 'nli'              # fine-tuning run outputs, mirrors mlm/
+        self.nli_data = self.data / 'nli'         # the downloaded IndicXNLI Tamil json splits
+
+        for directory in [self.data, self.raw, self.cleaned, self.metrics, self.corpus, self.tokenizer, self.mlm, self.nli, self.nli_data]:
             directory.mkdir(exist_ok=True, parents=True)
             print(f"Directory created or already exists: {directory}")
             
@@ -116,6 +120,20 @@ class Paths:
             name (str): identifier for this run, e.g. tokenizer name + architecture variant
         """
         d = self.mlm / name
+        d.mkdir(exist_ok=True, parents=True)
+        print(f"Directory created or already exists: {d}")
+        return d
+
+    def nli_run_generator(self, name: str):
+        """
+        Creates (if needed) and returns a named subdirectory under nli/ for a specific
+        fine-tuning run. Same rationale as mlm_run_generator: keeps checkpoints from
+        different backbones/hyperparameters from colliding.
+
+        Args:
+            name (str): identifier for this run, e.g. the MLM backbone it fine-tunes
+        """
+        d = self.nli / name
         d.mkdir(exist_ok=True, parents=True)
         print(f"Directory created or already exists: {d}")
         return d

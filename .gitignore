@@ -13,4 +13,7 @@ train_log.txt
 *.pt
 /mlm/*/checkpoint-*
 /mlm/*/final
+/nli/*/checkpoint-*
+/nli/*/final
+/scripts/nli/__pycache__
 .claude/settings.json

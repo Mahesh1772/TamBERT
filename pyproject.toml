@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 # sys.path.insert required in any file.
 [tool.setuptools]
 package-dir = {"" = "scripts"}
-py-modules = ["paths"]
+py-modules = ["paths", "training_utils"]
 
 [tool.setuptools.packages.find]
 where = ["scripts"]

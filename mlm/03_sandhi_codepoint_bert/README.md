@@ -19,18 +19,35 @@
 
 ## Artifact loss — read this before trusting the Drive folder
 
-Six checkpoints exist (128000, 130000, 132000, 518000, 546000, 548000) but only **checkpoint-128000** is
-complete. checkpoint-130000 has weights but no `optimizer.pt`; the other four have neither. Every surviving
-file in the gutted checkpoints is small (`scheduler.pt` ~1 KB, `rng_state.pth` ~14 KB) and both missing files
-are the large ones (~270 MB weights, ~540 MB optimizer state), so this was a transfer/sync failure, not a
-Trainer bug — `_save_checkpoint` writes the model *before* `scheduler.pt`, so the weights did exist on disk.
+Six checkpoints exist (128000, 130000, 132000, 518000, 546000, 548000). Originally only **checkpoint-128000**
+was complete: checkpoint-130000 had weights but no `optimizer.pt`, and the other four had neither. Every
+surviving file in the gutted checkpoints was small (`scheduler.pt` ~1 KB, `rng_state.pth` ~14 KB) and both
+missing files were the large ones (~270 MB weights, ~540 MB optimizer state), so this was a transfer/sync
+failure, not a Trainer bug — `_save_checkpoint` writes the model *before* `scheduler.pt`, so the weights did
+exist on disk.
 
 `best_model_checkpoint` in the recovered state points at
 `C:\Users\butte\OneDrive\Documents\GitHub\TamBERT\mlm\...`. **The run trained inside a OneDrive-synced
 folder**, which is the most likely cause of the loss: OneDrive dehydrates or fails to sync large files.
-Two consequences:
-- The weights may still be recoverable from OneDrive version history / the origin machine — worth checking before writing off 548,000.
-- The re-run must write `output_dir` to a **non-synced local path**.
+Consequence for any future run: write `output_dir` to a **non-synced local path**.
+
+### ✅ checkpoint-548000 recovered (2026-08-30)
+
+Re-uploaded complete from the origin machine — all ten files present, and the sizes confirm the large ones
+are whole rather than truncated:
+
+| File | Size | Expected |
+|---|---|---|
+| `model.safetensors` | 259.9 MB | ~259 MB for 6L/768H/32k-vocab |
+| `optimizer.pt` | 519.8 MB | 2× weights (Adam m + v) ✅ |
+| `trainer_state.json` | 266 KB | full `log_history` to step 548,000 |
+
+This makes 548,000 resumable (`find_resumable_checkpoint` needs weights + `optimizer.pt`; both are there) and
+means **steps 128,000–548,000 are no longer lost** — that 266 KB `trainer_state.json` holds the whole curve.
+Those intermediate numbers are not yet transcribed into this README.
+
+⚠️ 548,000 is the run's **stopping point, not its best model** — see below. It is the right thing to resume
+*from*, and the wrong thing to fine-tune *on*.
 
 ## Results — segment 1 (recovered from checkpoint-128000/trainer_state.json)
 
@@ -47,8 +64,8 @@ exists) but no `trainer_state.json` survives for it, so steps 128,000–548,000 
 | eval_loss trend | Monotonic 8.3826 (step 2k) → 4.3558 (step 128k), ±0.03 noise; still falling −0.145 per 32k steps at the cut |
 | `total_flos` | 1.129e17 |
 
-**Full test-set eval: never recorded.** The script only runs it after `trainer.train()` returns, which never
-happened on an interruption.
+**Full test-set eval: not recorded for this segment.** The script only runs it after `trainer.train()`
+returns. It *did* eventually run, at the end of the whole run — see segment 2 below.
 
 ### Logged training loss is inflated 4× — not a divergence
 
@@ -75,18 +92,46 @@ So only the ramp was short: this segment ran with roughly `warmup_steps=2000` (r
 drops LR from 9.56e-5 to 7.41e-5, ramps back to 1e-4 by step 172,800, and only then decays. To continue
 segment 1's schedule seamlessly instead, set `warmup_steps=2000` (it takes precedence over `warmup_ratio`).
 
-## Results — segment 2 / re-run (pending)
+## Results — final, full test set
 
-Resuming from `checkpoint-128000` costs 420,000 steps ≈ 0.88 epochs ≈ 4.3× the training that survives.
+The run did finish: **early stopping fired at step 548,000** and the end-of-training full-corpus eval ran.
+These numbers are transcribed from stdout into [final_metrics.json](final_metrics.json) — the Aug 20 script
+(commit `280b486`) printed them but had no persistence step, so stdout was the only copy.
 
-- Final full test-set eval_loss / perplexity: [PENDING]
-- Final step reached / early-stopped vs. completed all 6 epochs: [PENDING]
-- Best checkpoint: [PENDING]
-- Qualitative masked-fill sanity check: [PENDING]
+| | |
+|---|---|
+| Full test-set eval_loss | **3.7678** (perplexity **43.3**) |
+| Measured on | the **full** 3,409,318-line test set (3,413,207 samples in 3.84 h), not the 20k subsample |
+| Weights measured | **`checkpoint-518000`** — `load_best_model_at_end=True` swapped the best checkpoint in before this eval |
+| Step reached | 548,000 = 1.1417 epochs = **19.03%** of the 6-epoch ceiling |
+| Stopping reason | Early stopping. `patience=15` × `eval_steps=2000` = a 30,000-step no-improvement window, so best = 548,000 − 30,000 = **518,000**, corroborated by `checkpoint-518000` surviving rotation |
+| vs. segment 1 | −0.5879 nats from 4.3558; perplexity 77.9 → 43.3 (not strictly comparable: subsample vs. full test set) |
 
-Distance to target: [README.md](../../README.md) wants MLM loss < 2.0 (perplexity 7.4). Segment 1 ended at
-4.3558, so **2.36 nats to go** — the remaining 95% of the 6-epoch schedule is what has to close that.
+**Distance to target:** [README.md](../../README.md) wants MLM loss < 2.0 (perplexity 7.4), so **1.7679 nats
+to go**.
+
+### The plateau is at high LR, not a capacity ceiling
+
+Early stopping at 19% of the schedule means the linear decay never annealed — LR was still ~8.1e-5 of its
+1e-4 peak when the run stopped. A large share of MLM's final quality comes from decaying LR toward zero, so
+"stopped improving" here means *stopped improving at 8.1e-5*, not *out of headroom*. The cheap experiment is
+to resume from `checkpoint-548000` with `num_train_epochs` reduced to ~1.5 so the decay actually completes
+over the remaining ~170,000 steps, rather than training longer against the original 2.88M-step ramp.
+
+⚠️ **No `final/` was ever written.** The Aug 20 script had no weights-only export (added in `1e9d075`), so
+the only place these weights exist is inside the surviving `checkpoint-*` directories. Use
+`scripts/mlm/export_backbone.py` to build `final/` from a checkpoint after the fact — it reads
+`best_model_checkpoint` out of `trainer_state.json` and defaults to the **best** step, not the newest.
+
+⚠️ **But checkpoint-518000 is still gutted — only 548000 was recovered.** So the model that produced the
+3.7678 above is *not currently available*, and the export has to fall back to 548,000 (the script warns loudly
+when it does). The two are 30,000 steps of measured non-improvement apart, comfortably inside the ±0.03
+masking noise floor, so 548,000 is a fine backbone — just do not quote 3.7678 as its score. Worth asking the
+origin machine for `checkpoint-518000/model.safetensors` (259.9 MB; the 519.8 MB `optimizer.pt` is *not*
+needed for a backbone export, only for resuming).
 
 ## Next step
-NLI fine-tuning (planned; not yet started). It should consume `mlm/03_sandhi_codepoint_bert/final/`, the
-weights-only export added to `scripts/mlm/train_roberta.py` — not a rotating step checkpoint.
+NLI fine-tuning — `scripts/nli/train_nli.py` (IndicXNLI Tamil, cross-encoder). It consumes
+`mlm/03_sandhi_codepoint_bert/final/`, which must be produced by `export_backbone.py` first since this run
+never wrote it. Expect modest accuracy from a perplexity-43 6-layer encoder; the immediate value is the first
+real downstream signal plus an end-to-end check of the pipeline before STS.

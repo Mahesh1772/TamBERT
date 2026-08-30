@@ -1,0 +1,19 @@
+{
+  "eval_loss": 3.7678558826446533,
+  "eval_runtime": 13809.9279,
+  "eval_samples_per_second": 247.156,
+  "eval_steps_per_second": 15.447,
+  "epoch": 1.141709554582023,
+  "perplexity": 43.28715252900083,
+  "_provenance": {
+    "note": "Transcribed by hand from the run's stdout, NOT written by save_run_artifacts(). This run used the Aug 20 script (commit 280b486), which printed these metrics but had no persistence step. Later runs write this file automatically.",
+    "printed_as": "Final full test-set metrics: {'eval_loss': 3.7678558826446533, 'eval_runtime': 13809.9279, 'eval_samples_per_second': 247.156, 'eval_steps_per_second': 15.447, 'epoch': 1.141709554582023}",
+    "perplexity_added_here": "exp(eval_loss); the Aug 20 script did not compute it",
+    "measured_on": "the full 3,409,318-line test set (eval_runtime x eval_samples_per_second = 3,413,207 samples), not the 20k eval subsample used for per-step evals",
+    "weights_measured": "checkpoint-518000, NOT the final step. load_best_model_at_end=True swapped the best checkpoint in before this eval ran.",
+    "stop_step": 548000,
+    "stop_step_derivation": "epoch 1.141709554582023 x 479,982 steps/epoch = 548,000 exactly",
+    "best_step_derivation": "EarlyStoppingCallback(patience=15) at eval_steps=2000 is a 30,000-step window, so 548,000 - 30,000 = 518,000; corroborated by checkpoint-518000 existing on disk (load_best_model_at_end shields the best checkpoint from save_total_limit rotation)",
+    "stopping_reason": "early stopping; 19.03% of the 2,879,892-step 6-epoch ceiling"
+  }
+}
