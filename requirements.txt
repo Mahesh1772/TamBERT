@@ -1,6 +1,33 @@
---extra-index-url https://download.pytorch.org/whl/cu121
-torch==2.5.1+cu121
+# --- PyTorch (CUDA) -------------------------------------------------------------
+# CHANGED from cu121: that channel ceilings at torch 2.5.1, which cannot satisfy the
+# >=2.6 floor the pin below needs. cu126 spans 2.6.0-2.14.0 and covers Pascal through
+# Hopper/Ada. A Blackwell (RTX 50-series) box needs cu128 instead -- see CLAUDE.md.
+--extra-index-url https://download.pytorch.org/whl/cu126
+
+# The >=2.6 part is load-bearing, not cosmetic. Transformers 5.15+ refuses to load
+# optimizer state on older torch, so training_utils.resolve_resume_checkpoint() finds a
+# valid checkpoint, declines to resume, and restarts from step 0 -- a silent loss, not an
+# error. The previous torch==2.5.1+cu121 pin guaranteed that on every fresh install.
+# 2.13.0 also mirrors the dev box's 2.13.0+cpu, so both machines share a torch minor.
+torch==2.13.0+cu126
+
+# --- Training stack -------------------------------------------------------------
+# Upper-bounded at the next major; the 4.x->5.x transitions were breaking for all three.
+# The [torch] extra is what pulls in accelerate, which Trainer requires.
+transformers[torch]>=5.14,<6
+datasets>=5.0,<6
+tokenizers>=0.22,<1.0
+
+# Imported directly but previously only inherited transitively from transformers /
+# datasets -- a lucky inheritance that any upstream dependency change would break:
+#   yaml        <- tokenizer/core/pipeline.py, reads each family's config.yaml
+#   safetensors <- mlm/export_backbone.py, NaN-checks exported checkpoint tensors
+pyyaml
+safetensors
+
+# --- Corpus pipeline & analysis -------------------------------------------------
 beautifulsoup4
+gdown
 lxml
 matplotlib
 numpy
@@ -10,8 +37,6 @@ regex
 requests
 scipy
 tqdm
-grapheme
-tokenizers
-datasets
-transformers[torch]
-gdown
+
+# DROPPED: `grapheme`. Nothing imports it -- grapheme-cluster segmentation is done with
+# regex's \X operator in tokenizer/core/grapheme_remap.py, not this package.
