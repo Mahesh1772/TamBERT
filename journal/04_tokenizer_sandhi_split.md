@@ -1,3 +1,8 @@
+---
+title: 4. Sandhi Aware Splitting
+nav_order: 4
+---
+
 # TamilBERT v1.0 — Sandhi Aware Splitting
 
 Tamil words often blend into the word next to them through sound change rules called sandhi. A plain split on whitespace or punctuation misses this entirely, so this experiment tries to mark those natural boundaries directly, before the tokenizer ever sees the text.

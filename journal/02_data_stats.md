@@ -1,3 +1,8 @@
+---
+title: 2. Data Pipeline QA
+nav_order: 2
+---
+
 # TamilBERT v0.1 — Data Pipeline QA Log
 
 Sources: Project Madurai (classical literature), Tamil Wikipedia, Tamil CC100.  

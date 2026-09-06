@@ -1,0 +1,51 @@
+{%- comment -%}
+Sequential prev/next pager for the journal.
+
+just-the-docs has no built-in prev/next, but footer_custom.html is an officially supported
+override that renders at the bottom of every page's main content -- which is exactly where a
+"finished reading, go to the next entry" control belongs.
+
+Ordering comes from each entry's nav_order, the same field driving the sidebar, so the reading
+order can never disagree with the nav. nav_order is an integer, so `sort` orders it numerically
+(as strings, "10" would sort before "2").
+
+The dir filter scopes this to journal entries only, so index.md gets no pager. Files excluded
+in _config.yml never enter site.pages, so tokenizer_notes.md and workflow.md drop out for free.
+{%- endcomment -%}
+
+{%- assign entries = site.pages | where: "dir", "/journal/" | sort: "nav_order" -%}
+{%- assign here = -1 -%}
+{%- for e in entries -%}
+  {%- if e.url == page.url -%}{%- assign here = forloop.index0 -%}{%- endif -%}
+{%- endfor -%}
+
+{%- if here >= 0 -%}
+{%- assign last = entries | size | minus: 1 -%}
+<nav class="journal-pager" aria-label="Journal entry navigation">
+  <div class="journal-pager__side journal-pager__side--prev">
+    {%- if here > 0 -%}
+      {%- assign i = here | minus: 1 -%}
+      {%- assign prev = entries[i] -%}
+      <a href="{{ prev.url | relative_url }}" rel="prev">
+        <span class="journal-pager__label">&larr; Previous</span>
+        <span class="journal-pager__title">{{ prev.title }}</span>
+      </a>
+    {%- endif -%}
+  </div>
+  <div class="journal-pager__side journal-pager__side--next">
+    {%- if here < last -%}
+      {%- assign j = here | plus: 1 -%}
+      {%- assign next = entries[j] -%}
+      <a href="{{ next.url | relative_url }}" rel="next">
+        <span class="journal-pager__label">Next &rarr;</span>
+        <span class="journal-pager__title">{{ next.title }}</span>
+      </a>
+    {%- else -%}
+      <a href="{{ '/' | relative_url }}" rel="next">
+        <span class="journal-pager__label">Next &rarr;</span>
+        <span class="journal-pager__title">Back to the index</span>
+      </a>
+    {%- endif -%}
+  </div>
+</nav>
+{%- endif -%}

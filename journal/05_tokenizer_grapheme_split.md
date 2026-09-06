@@ -1,3 +1,8 @@
+---
+title: 5. Grapheme Aware Splitting
+nav_order: 5
+---
+
 # TamilBERT v1.0 — Grapheme Aware Splitting
 
 ## What a grapheme cluster is

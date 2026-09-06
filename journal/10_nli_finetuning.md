@@ -1,3 +1,8 @@
+---
+title: 10. NLI Fine-tuning
+nav_order: 10
+---
+
 # TamilBERT v1.0 — NLI Fine-tuning
 
 The MLM stage produced a model that understands Tamil in a general way — it can fill in blanks sensibly. What it

@@ -1,3 +1,8 @@
+---
+title: 8. MLM Pre-training
+nav_order: 8
+---
+
 # TamilBERT v1.0 — MLM Pre-training
 
 The tokenizer can now turn Tamil text into token IDs and back, but it has no idea what any of those IDs mean.

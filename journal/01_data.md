@@ -1,3 +1,8 @@
+---
+title: 1. Data
+nav_order: 1
+---
+
 # TamilBERT v0.1 — Data
 
 Building a monolingual Tamil corpus turned out to be a project on its own.

@@ -1,0 +1,70 @@
+title: TamBERT
+description: >-
+  Build journal for a Tamil BERT-style encoder trained from scratch: corpus construction,
+  a 12-way tokenizer ablation, MLM pre-training, and NLI fine-tuning.
+
+# Repo is Mahesh1772/TamBERT, so the site is served from a subpath. baseurl must match the
+# repo name or every themed asset and nav link 404s.
+url: https://mahesh1772.github.io
+baseurl: /TamBERT
+
+remote_theme: just-the-docs/just-the-docs
+
+plugins:
+  - jekyll-remote-theme
+  # Rewrites .md links between pages to their built permalinks. This is why the cross-links in
+  # journal/07, /08 and /09 are left as *.md: they resolve correctly here AND stay clickable
+  # when the same files are browsed on github.com. Hardcoding .html would break the latter.
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: false
+
+# Pages builds from the repo ROOT so journal/ can stay where it is -- CLAUDE.md documents
+# journal/*.md as the per-stage design logs, and moving them would break that convention.
+# The cost is that everything else in the repo has to be excluded explicitly.
+exclude:
+  - scripts/
+  - data/
+  - tokenizer/
+  - mlm/
+  - nli/
+  - notebooks/
+  - bat_files/
+  - requirements.txt
+  - pyproject.toml
+  - CLAUDE.md
+  - README.md          # the roadmap is a note-to-self and partly stale; index.md is the landing page
+  - journal/tokenizer_notes.md   # scratch notes, deliberately unpublished
+  - journal/workflow.md          # superseded by the pipeline table on index.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
+  - .venv/
+
+kramdown:
+  # Default is 'mathjax', which emits <script type="math/tex"> -- a MathJax *2* convention that
+  # MathJax 3 ignores silently, leaving raw TeX on the page. nil means "math blocks are output
+  # as is" (kramdown docs), so the $$ survives for MathJax 3 to find. 40 math blocks across
+  # journal/02, /06 and /07 depend on this pairing with _includes/head_custom.html.
+  math_engine: null
+  syntax_highlighter: rouge
+
+defaults:
+  - scope:
+      path: journal
+    values:
+      layout: default
+
+# --- just-the-docs ---
+search_enabled: true
+heading_anchors: true
+color_scheme: light
+
+aux_links:
+  View on GitHub: https://github.com/Mahesh1772/TamBERT
+aux_links_new_tab: true
+
+back_to_top: true
+back_to_top_text: Back to top

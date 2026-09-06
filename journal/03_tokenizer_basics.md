@@ -1,3 +1,8 @@
+---
+title: 3. Tokenizer Basics
+nav_order: 3
+---
+
 # TamilBERT v1.0 — Tokenizer Basics
 
 Once the corpus was ready, the next problem was turning Tamil text into something a model can actually learn from. That job belongs to the tokenizer, and it turned out to involve almost as many small decisions as building the corpus did.

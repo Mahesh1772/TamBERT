@@ -1,3 +1,8 @@
+---
+title: 6. Tokenizer Training
+nav_order: 6
+---
+
 # TamilBERT v1.0 — Tokenizer Training
 
 ## What training actually produces

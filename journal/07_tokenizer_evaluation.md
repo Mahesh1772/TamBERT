@@ -1,3 +1,8 @@
+---
+title: 7. Tokenizer Evaluation
+nav_order: 7
+---
+
 # TamilBERT v1.0 — Tokenizer Evaluation
 
 Twelve tokenizers came out of the previous stage: three algorithms (BPE, WordPiece, Unigram) crossed with four

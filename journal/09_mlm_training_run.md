@@ -1,3 +1,8 @@
+---
+title: 9. The MLM Training Run
+nav_order: 9
+---
+
 # TamilBERT v1.0 — The MLM Training Run
 
 The previous entry covered what `train_roberta.py` is configured to do. This one covers what happened when it

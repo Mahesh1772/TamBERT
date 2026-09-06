@@ -1,0 +1,85 @@
+{%- comment -%}
+Injected before </head> on every page. Two jobs: make Tamil render properly, and make the
+$$...$$ math blocks render at all.
+{%- endcomment -%}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600&display=swap">
+
+<script>
+  // MathJax 3. inlineMath is deliberately EMPTY: the journals contain no inline math (verified --
+  // every formula is a $$ block), and enabling $...$ would let MathJax swallow any prose or table
+  // cell containing a lone dollar sign and render the text between two of them as garbled TeX.
+  // displayMath must be stated explicitly because MathJax 3 defaults to \[...\], not $$.
+  window.MathJax = {
+    tex: {
+      inlineMath: [],
+      displayMath: [['$$', '$$']],
+      processEscapes: true
+    },
+    options: {
+      // pre/code are skipped so shell snippets and Python blocks are never treated as math.
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+  };
+</script>
+<script id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<style>
+  /* Noto Sans Tamil sits LAST in the stack on purpose. Latin text keeps resolving from the
+     earlier system fonts (so the site still looks like just-the-docs), and only codepoints
+     absent from those -- i.e. Tamil -- fall through to Noto. Without this the browser picks an
+     arbitrary OS fallback for Tamil, usually a badly-hinted serif that renders the grapheme
+     clusters in journal/04 inconsistently. */
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+                 "Noto Sans Tamil", sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  }
+
+  /* The sandhi marker U+27C2 and the Private Use Area placeholders discussed in journal/05 are
+     symbols, not letters; keep them on a stack that actually has U+27C2 rather than letting them
+     hit a tofu box. PUA codepoints have no glyph anywhere by definition and will still box -- as
+     journal/05 says they should. */
+  code, kbd, samp, pre {
+    font-family: "Cascadia Code", "Segoe UI Symbol", ui-monospace, SFMono-Regular, Menlo,
+                 Consolas, "Liberation Mono", monospace;
+  }
+
+  /* --- prev/next pager (see footer_custom.html) --- */
+  .journal-pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 3rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #eeebee;
+  }
+  .journal-pager__side { flex: 1 1 0; min-width: 0; }
+  .journal-pager__side--next { text-align: right; }
+  .journal-pager a {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    text-decoration: none;
+  }
+  .journal-pager a:hover .journal-pager__title { text-decoration: underline; }
+  .journal-pager__label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6d6a6f;
+  }
+  .journal-pager__title { font-weight: 600; }
+
+  /* Several journal tables are wide (the 12-variant grid, the reported-vs-raw comparison).
+     Scroll them instead of letting them blow out the page width on narrow screens. */
+  .main-content table { display: block; overflow-x: auto; max-width: 100%; }
+
+  @media (max-width: 30rem) {
+    .journal-pager { flex-direction: column; }
+    .journal-pager__side--next { text-align: left; }
+  }
+</style>

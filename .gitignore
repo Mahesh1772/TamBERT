@@ -19,3 +19,9 @@ train_log.txt
 .claude/settings.json
 CLAUDE.md
 /scripts/tokenizer/bert/__pycache__
+
+# GitHub Pages / Jekyll build output
+_site/
+.jekyll-cache/
+.jekyll-metadata
+Gemfile.lock
