@@ -12,9 +12,7 @@ from transformers import AutoTokenizer
 from paths import Paths
 from tokenizer.core.pipeline import load_config
 from tokenizer.core.metrics import calculate_tokenizer_metrics
-
-# each family's config.yaml, relative to this file
-FAMILY_CONFIGS = ["bpe/config.yaml", "unigram/config.yaml", "bert/config.yaml"]
+from tokenizer.core.preprocess import corpus_attr, family_config_paths, saved_tokenizer_markings
 
 
 # 1. collect every tokenizer variant's metrics.json + tokenizer.json
@@ -59,19 +57,18 @@ def plot_metric_bars(df, out_dir):
 # variant name -> correct test file for the SAVED tokenizer.json
 # (relabelled grapheme variants expect raw text, not placeholder text)
 def build_test_file_map(paths):
+    # Config paths come from family_config_paths() rather than being built off __file__ here: this module lives
+    # in scripts/tokenizer/core/ but the configs are one level up, and the local version resolved them against
+    # core/ and so never found any of them.
     print("Building variant to test file map from family configs...")
-    base = Path(__file__).resolve().parent
     test_map = {}
-    for rel_path in FAMILY_CONFIGS:
-        for cfg in load_config(base / rel_path):
-            use_grapheme = cfg.get("use_grapheme", False)
-            use_sandhi = cfg.get("use_sandhi", False)
-            relabelled = cfg.get("relabel_vocab_after_save", False)
-            if use_grapheme and relabelled:
-                attr = "test_sandhi_marked" if use_sandhi else "test"
-            else:
-                attr = cfg["test_attr"]
-            test_map[cfg["name"]] = getattr(paths, attr)
+    for config_path in family_config_paths():
+        for cfg in load_config(config_path):
+            # saved_tokenizer_markings folds in relabel_vocab_after_save, which is the whole subtlety here: a
+            # relabelled grapheme variant's vocab is real Tamil again, so it has to be measured against the
+            # NON-substituted file, not the *_grapheme_marked one its train_attr/test_attr names.
+            use_sandhi, use_grapheme = saved_tokenizer_markings(cfg)
+            test_map[cfg["name"]] = getattr(paths, corpus_attr(use_sandhi, use_grapheme, split="test"))
     return test_map
 
 

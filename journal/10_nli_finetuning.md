@@ -325,41 +325,83 @@ The dev set drives training decisions; the test set is touched exactly once, at 
 
 ---
 
-## An issue found while writing this up
+## An issue found while writing this up, and the fix
 
 The tokenizer basics entry stated the rule plainly: a precomputed marking scheme carries forward to inference,
 and any new text has to go through the same sandhi marking before being handed to the tokenizer, or it won't
 line up with what the tokenizer learned.
 
-**`train_nli.py` does not do this.** It passes `batch['sentence1']` and `batch['sentence2']` — raw IndicXNLI
-Tamil — straight to a tokenizer whose vocabulary was learned from `⟂`-marked text, and the model it feeds was
+**`train_nli.py` originally did not do this.** It passed `batch['sentence1']` and `batch['sentence2']` — raw
+IndicXNLI Tamil — straight to a tokenizer whose vocabulary was learned from `⟂`-marked text, feeding a model
 pre-trained entirely on `⟂`-marked text.
 
-Measured on the corpus test set, this costs:
+Measured on the corpus test set, that cost:
 
 | | Sandhi-marked input | Unmarked input |
 |---|---|---|
 | Fertility | 1.3412 | 1.4141 |
 | Marker-bearing vocab entries used | 1,207 | **0** |
 
-1,253 of the 32,000 vocabulary entries contain the marker. On unmarked text not a single one of them is
-reachable, so about 3.9% of the embedding table is dead weight — rows the MLM stage spent compute training that
-can never activate again. Sequences also run about 5% longer, which nibbles at the 128-token budget.
+1,253 of the 32,000 vocabulary entries contain the marker. On unmarked text not a single one is reachable, so
+about 3.9% of the embedding table is dead weight — rows the MLM stage spent compute training that can never
+activate again. Sequences also run about 5% longer, which nibbles at the 128-token budget.
 
-The fix is small. `scripts/tokenizer/core/sandhi.py` exposes `sandhi_mark_boundaries(text, lang='ta')`, the same
-function `sandhi_precompute.py` used to build the corpus files, so it's a matter of applying it to `sentence1`
-and `sentence2` inside `tokenize_function`.
+This was the same category of bug as the `initial_alphabet` no-op from the grapheme stage: correct-looking code,
+no error anywhere, and a quiet degradation that only shows up if someone goes looking. That one was found by
+reading library documentation carefully. This one was found by writing down what the pipeline was supposed to do
+and comparing it against what the code did.
 
-Two honest caveats before treating this as settled. The magnitude is unknown — 5% more tokens and a 4% smaller
-effective vocabulary is a real distribution shift, but whether it's worth measurable accuracy is an empirical
-question, and fine-tuning may simply adapt around it. And IndicXNLI is machine-translated text, so the sandhi
-rules may fire differently on it than on the Wikipedia and Common Crawl prose they were tuned against. The right
-move is to run it both ways and compare, which is cheap at this scale.
+### How it was fixed
 
-Flagging it rather than silently fixing it, because it's the same category of bug as the `initial_alphabet`
-no-op from the grapheme stage: correct-looking code, no error anywhere, and a quiet degradation that only shows
-up if someone goes looking. That one was found by reading library documentation carefully. This one was found by
-writing down what the pipeline was supposed to do and comparing it against what the code did.
+The transform is not NLI-specific — STS will need exactly the same thing, and so will anyone who ever loads the
+released model. So rather than inlining a call in `tokenize_function`, it went into a shared module,
+`scripts/tokenizer/core/preprocess.py`:
+
+```python
+preprocess_text, preprocessing_label = build_text_preprocessor(BACKBONE_RUN, paths)
+```
+
+`build_text_preprocessor` looks the variant up in its own family `config.yaml` and returns the transform that
+variant's saved tokenizer expects. Nothing about the marking scheme is hardcoded at the call site, so the same
+line works unchanged for any of the twelve variants — and it **raises** on an unknown name rather than returning
+the identity function, because silently applying no preprocessing is indistinguishable from correct behaviour
+until the metrics come in.
+
+Three details the module has to get right, all of which already existed as knowledge scattered across the
+pipeline:
+
+- **Order.** Sandhi marking runs before grapheme substitution. Reversed, the sandhi regexes would be matching
+  Tamil phonological rules against text whose clusters are already opaque placeholder codepoints.
+- **`relabel_vocab_after_save`.** A relabelled grapheme variant's vocabulary is real Tamil again, so it wants
+  *unsubstituted* input — passing it placeholders would miss every entry. This is why the four Unigram grapheme
+  variants resolve to no grapheme step at all, while the BPE and WordPiece ones still need it.
+- **One implementation.** `pipeline.py` had a private `_preprocess` doing this for its own sample text. It now
+  delegates to the shared function, so the inference-side transform cannot drift from the one the training
+  corpus was built with.
+
+Measured on 20,000 Tamil sentence pairs through the real `tokenize_function`:
+
+| | Fertility | Marker vocab entries reached | Truncated at 128 |
+|---|---|---|---|
+| Before (raw input) | 1.5160 | 0 | 0.11% |
+| After (preprocessed) | **1.4430** | **1,191** | 0.06% |
+
+Truncation dropping is a small bonus — shorter sequences hit the 128-token ceiling less often.
+
+Two honest caveats remain. The *accuracy* impact is still unmeasured: 5% more tokens and a 4% smaller effective
+vocabulary is a real distribution shift, but whether it costs measurable accuracy is an empirical question, and
+fine-tuning may partly adapt around it. And IndicXNLI is machine-translated text, so the sandhi rules may fire
+differently on it than on the Wikipedia and Common Crawl prose they were tuned against. Consistency with
+pretraining is the defensible default, which is why it's on; the A/B is worth running only if the accuracy comes
+back disappointing, since at that point it isolates a weak backbone from a representation mismatch.
+
+### A latent bug found next door
+
+`tokenizer_stats.py` had its own copy of the variant-to-representation logic, and it resolved the family config
+paths relative to `scripts/tokenizer/core/` when the configs live one level up in `scripts/tokenizer/<family>/`.
+Every path missed, so `build_test_file_map` would have raised `FileNotFoundError` on any run — the script cannot
+have worked since whatever refactor moved it into `core/`. Both callers now share
+`preprocess.py`'s resolver, which fixes it and removes the duplicated logic at the same time.
 
 ---
 

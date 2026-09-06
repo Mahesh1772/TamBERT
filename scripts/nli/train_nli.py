@@ -27,6 +27,7 @@ from transformers import (DataCollatorWithPadding, EarlyStoppingCallback, PreTra
 
 from paths import Paths
 from tokenizer.core.constants import PAD_TOKEN, BOS_TOKEN, EOS_TOKEN, UNK_TOKEN, MASK_TOKEN
+from tokenizer.core.preprocess import build_text_preprocessor
 from training_utils import RunRootStateWriter, export_final_model, resolve_resume_checkpoint, save_run_artifacts
 
 SEED = 42
@@ -110,6 +111,12 @@ tokenizer = PreTrainedTokenizerFast(tokenizer_object=raw_tokenizer,
                                     unk_token=UNK_TOKEN,
                                     mask_token=MASK_TOKEN)
 
+# BACKBONE_RUN doubles as the tokenizer variant name, so the preprocessing this tokenizer needs is read off that
+# variant's own config.yaml instead of hardcoded here. Raises rather than silently no-op'ing if the name is not a
+# known variant, since "no preprocessing" is indistinguishable from correct behaviour until the metrics come in.
+preprocess_text, preprocessing_label = build_text_preprocessor(BACKBONE_RUN, paths)
+print(f"Input preprocessing for {BACKBONE_RUN}: {preprocessing_label}")
+
 # The lm_head is dropped and a fresh 3-way classifier is initialized — the "newly initialized" warning
 # transformers prints here is expected, not a problem.
 model = RobertaForSequenceClassification.from_pretrained(
@@ -131,9 +138,15 @@ print(f"Loaded backbone from {backbone_dir} with a fresh {len(ID2LABEL)}-way cla
 # is an out-of-bounds embedding lookup ("IndexError: index out of range in self", or an opaque device-side
 # assert on GPU). transformers 5.14 happens not to emit token_type_ids for this tokenizer, so the default is
 # currently safe by accident; this makes it safe on purpose. RoBERTa is single-token-type by design anyway.
+#
+# Both sentences go through preprocess_text first. The backbone's tokenizer (03_sandhi_codepoint_bert) learned
+# its vocab from sandhi-marked text and the MLM saw nothing else, so feeding raw IndicXNLI here silently wastes
+# 1,253 of the 32,000 embedding rows -- every vocab entry containing the ⟂ marker becomes unreachable -- and
+# pushes fertility from 1.3412 to 1.4141 (~5% more tokens against the 128-token budget). No error either way,
+# which is why this is derived from the variant's own config rather than left to be remembered.
 def tokenize_function(batch):
-    encoded = tokenizer(batch['sentence1'],
-                        batch['sentence2'],
+    encoded = tokenizer([preprocess_text(s) for s in batch['sentence1']],
+                        [preprocess_text(s) for s in batch['sentence2']],
                         truncation=True,
                         max_length=MAX_LENGTH,
                         return_token_type_ids=False)

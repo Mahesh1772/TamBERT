@@ -32,7 +32,8 @@ from tokenizers.trainers import BpeTrainer, UnigramTrainer, WordPieceTrainer
 
 from tokenizer.core.metrics import calculate_tokenizer_metrics
 from tokenizer.core.constants import UNK_TOKEN, VOCAB_SIZE, BPE_SPECIAL_TOKENS, SAMPLE_TEXT, standard_normalizer
-from tokenizer.core.grapheme_remap import load_map, substitute_line, restore_text, restore_vocab_in_place
+from tokenizer.core.grapheme_remap import load_map, restore_text, restore_vocab_in_place
+from tokenizer.core.preprocess import preprocess_text
 from tokenizer.core.sandhi import sandhi_mark_boundaries
 
 
@@ -63,13 +64,14 @@ def _build_model_and_trainer(model_type):
 def _preprocess(text, use_sandhi, use_grapheme, placeholder_map):
     """Apply the same preprocessing chain used for the training corpus to a
     single string, so the printed/encoded sample matches what the model
-    actually saw. Order matters: sandhi marking happens before grapheme
-    substitution."""
-    if use_sandhi:
-        text = sandhi_mark_boundaries(text, lang="ta")
-    if use_grapheme:
-        text = substitute_line(text, placeholder_map)
-    return text
+    actually saw.
+
+    Delegates to tokenizer.core.preprocess, which downstream stages
+    (train_nli.py and onward) also call to preprocess *their* input text.
+    One implementation, so the inference-side transform cannot drift from
+    the one the corpus was built with. The ordering invariant — sandhi
+    before grapheme — lives there."""
+    return preprocess_text(text, use_sandhi, use_grapheme, placeholder_map)
 
 
 def _build_decoder(use_sandhi, model_type):

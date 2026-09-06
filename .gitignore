@@ -17,3 +17,5 @@ train_log.txt
 /nli/*/final
 /scripts/nli/__pycache__
 .claude/settings.json
+CLAUDE.md
+/scripts/tokenizer/bert/__pycache__
