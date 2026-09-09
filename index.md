@@ -6,8 +6,8 @@ nav_order: 0
 
 # TamBERT — Build Journal
 
-A Tamil BERT-style encoder, trained from scratch, aiming to beat IndicSBERT-STS's Spearman
-**0.82** on the Tamil STS benchmark. Not a generative model — a semantic-understanding backbone.
+A Tamil BERT-style encoder, trained from scratch, aiming to beat the best published Tamil STS score —
+Spearman **0.80**. Not a generative model — a semantic-understanding backbone.
 
 These are the build notes: what was decided, what was measured, and what broke. Each entry covers
 one stage of the pipeline, in order, and records the reasoning rather than just the outcome —
@@ -41,23 +41,34 @@ corpus  →  tokenizer  →  MLM pre-training  →  NLI fine-tune  →  STS fine
 | Tokenizer | Done — 12 variants trained. Winner `03_sandhi_codepoint_bert`, fertility **1.3414** |
 | MLM pre-training | Early-stopped at step 548,000 (19% of the schedule). `eval_loss` **3.7678**, perplexity 43.3 |
 | NLI fine-tuning | Written, not yet run |
-| STS fine-tuning | Not started |
-| Evaluation | Not started |
+| STS fine-tuning | Blocked — no Tamil–Tamil STS dataset exists |
+| Evaluation | Blocked — downstream of STS |
 
 The MLM target is a loss below 2.0, so there is still **1.77 nats** to go. Entry 9 argues that the
 plateau is an artifact of stopping while the learning rate was still near peak, rather than a
 capacity ceiling — the decay never annealed.
 
+Stages 5 and 6 are not simply unwritten. The dataset they need does not appear to exist: `indic_sts`
+is `en-XX` only with no `ta-ta` config and no train split, and the leaderboard's own Tamil STS-B is
+English STS-B put through Google Translate. The
+[README](https://github.com/Mahesh1772/TamBERT#the-missing-piece-a-tamiltamil-sts-set) sets out what
+has been ruled out and what would qualify — pointers very welcome.
+
 ## The leaderboard being chased
 
-| Model | Spearman (Tamil STS) |
-|---|---|
-| mBERT (vanilla) | 0.49 |
-| TamilBERT (vanilla) | 0.59 |
-| LaBSE (vanilla) | 0.72 |
-| L3Cube TamilBERT after NLI | 0.72 |
-| L3Cube TamilBERT after NLI + STS | 0.80 |
-| **IndicSBERT-STS (current SOTA)** | **0.82** |
+Tamil column only, from L3Cube Tables 1 and 3.
+
+| Model | Vanilla | + NLI | + NLI + STS |
+|---|---|---|---|
+| mBERT | 0.49 | 0.65 | 0.75 |
+| TamilBERT (L3Cube) | 0.59 | 0.72 | **0.80** |
+| MuRIL | 0.60 | 0.72 | **0.80** |
+| LaBSE | 0.72 | — | — |
+| IndicSBERT | — | 0.74 | **0.80** |
+
+The top of the Tamil table is a three-way tie at **0.80**. An earlier version of this page chased
+0.82 and credited it to IndicSBERT-STS on Tamil; that was a mis-transcription — 0.82 is Bengali and
+Kannada, and Tamil is 0.80 across the board.
 
 *Source: L3Cube, [arXiv 2304.11434](https://arxiv.org/abs/2304.11434)*
 

@@ -35,7 +35,7 @@ exclude:
   - requirements.txt
   - pyproject.toml
   - CLAUDE.md
-  - README.md          # the roadmap is a note-to-self and partly stale; index.md is the landing page
+  - README.md          # roadmap + contribution ask, aimed at github.com; index.md is the site landing page
   - journal/tokenizer_notes.md   # scratch notes, deliberately unpublished
   - journal/workflow.md          # superseded by the pipeline table on index.md
   - Gemfile
