@@ -1,2 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Batch files must arrive with CRLF. cmd.exe mis-parses goto labels and multi-line
+# if (...) blocks in LF-only .bat files, and does it silently -- jumping to the wrong
+# place rather than erroring. `* text=auto` above already yields CRLF on a Windows
+# checkout, but not on a Linux checkout later copied to Windows, and not if the user has
+# core.autocrlf=false. Every script in bat_files/ uses labels and blocks, so pin it.
+*.bat text eol=crlf

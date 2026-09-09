@@ -305,8 +305,10 @@ for the reason documented in that file.
 Two things that will bite on Windows: pass `encoding='utf-8'` to every `open()` (cp1252 cannot decode
 Tamil at all), and **never set an `output_dir` inside a cloud-synced folder** — see step 3.
 
-Stage-by-stage commands are in [`CLAUDE.md`](CLAUDE.md). Ignore `bat_files/`; the scripts in there have
-wrong relative paths and pre-refactor module names.
+On Windows, [`bat_files/`](bat_files/) wraps every stage as a double-clickable script that activates
+conda itself — `setup_env.bat`, then `01_data_pipeline.bat` through `05_nli_finetune.bat` in order.
+Each one lists the underlying `python scripts/…` commands in its header comment, and
+[`bat_files/README.md`](bat_files/README.md) covers the env vars and the pre-flight checks.
 
 ### Repo layout
 
