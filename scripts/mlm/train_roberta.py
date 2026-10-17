@@ -1,6 +1,7 @@
 from tokenizers import Tokenizer
 from transformers import RobertaConfig, EarlyStoppingCallback, RobertaForMaskedLM, DataCollatorForLanguageModeling, PreTrainedTokenizerFast, Trainer, TrainingArguments
 import os
+import math
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 from paths import Paths
 from tokenizer.core.constants import PAD_TOKEN, BOS_TOKEN, EOS_TOKEN, UNK_TOKEN, MASK_TOKEN
@@ -59,6 +60,12 @@ data_collator = DataCollatorForLanguageModeling(
 
 # Training configuration
 mlm_run_dir = paths.mlm_run_generator('03_sandhi_codepoint_bert')  # resolved once; reused for output_dir and for the final export below
+num_train_epochs = 6
+train_batch_size = 16
+gradient_accumulation_steps = 4
+warmup_ratio = 0.06
+steps_per_epoch = math.ceil(math.ceil(len(data['train']) / train_batch_size) / gradient_accumulation_steps)
+warmup_steps = round(warmup_ratio * steps_per_epoch * num_train_epochs)
 
 training_args = TrainingArguments(
     output_dir=str(mlm_run_dir),            # named per tokenizer + architecture, avoids checkpoint collisions across runs
@@ -66,14 +73,15 @@ training_args = TrainingArguments(
     eval_steps=10000,                       # kept equal to save_steps so every save has a fresh eval_loss to compare against
     save_strategy='steps',                  # CHANGED from 'epoch': one epoch is ~479k steps here, far too coarse for crash recovery
     save_steps=10000,                       # RAISED from 2000: each checkpoint is ~800 MB (weights + optimizer state), so 2000 meant ~240 saves and ~190 GB per epoch — unmanageable to retain or transfer. ~48 saves/epoch still bounds crash loss to ~2% of an epoch
-    num_train_epochs=6,                     # ceiling, not a target; early stopping + load_best_model_at_end guard against overshooting
+    num_train_epochs=num_train_epochs,      # ceiling, not a target; early stopping + load_best_model_at_end guard against overshooting
     learning_rate=1e-4,                     # standard from-scratch RoBERTa/BERT peak LR
     lr_scheduler_type='linear',             # linear decay after warmup; matches original RoBERTa recipe
-    warmup_ratio=0.06,                      # ~6% of steps ramp-up; restored, was missing here — important for a randomly-initialized transformer
+    warmup_steps=warmup_steps,               # ~6% of steps ramp-up; important for a randomly-initialized transformer
     weight_decay=0,                         # no weight decay; consider ~0.01 later if eval loss plateaus/overfits
-    per_device_train_batch_size=16,
+    per_device_train_batch_size=train_batch_size,
     per_device_eval_batch_size=16,
-    gradient_accumulation_steps=4,          # effective batch size = 16*4 = 64
+    gradient_accumulation_steps=gradient_accumulation_steps,  # effective batch size = 16*4 = 64
+    optim='adamw_torch',                    # matches the optimizer saved in existing checkpoints; 5.17 defaults to fused AdamW
     fp16=True,                              # mixed precision for GPU throughput/memory headroom
     save_total_limit=3,                     # bumped from 2: a little more resume margin with frequent step-based saves
     load_best_model_at_end=True,            # restored: required by EarlyStoppingCallback to track state.best_metric
